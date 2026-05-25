@@ -22,10 +22,11 @@ const initialData = {
     ]},
   ],
   todos: [
-    { id: 1, text: "Ôn tập chương 3 Toán", done: false, priority: "cao" },
-    { id: 2, text: "Viết bài luận Văn", done: false, priority: "trung bình" },
-    { id: 3, text: "Học từ vựng Unit 5", done: true, priority: "thấp" },
+    { id: 1, text: "Ôn tập chương 3 Toán", done: false, priority: "cao", date: new Date().toISOString().slice(0, 10) },
+    { id: 2, text: "Viết bài luận Văn", done: false, priority: "trung bình", date: new Date().toISOString().slice(0, 10) },
+    { id: 3, text: "Học từ vựng Unit 5", done: true, priority: "thấp", date: new Date().toISOString().slice(0, 10) },
   ],
+  todoHistory: [] as { date: string; items: { id: number; text: string; done: boolean; priority: string }[] }[],
   goals: [
     { id: 1, text: "Đạt 8.0 học kỳ này", deadline: "2025-06-30", done: false },
     { id: 2, text: "Hoàn thành khóa học lập trình", deadline: "2025-07-15", done: false },
@@ -101,6 +102,35 @@ export default function App() {
   // Todos
   const [newTodo, setNewTodo] = useState("");
   const [newPriority, setNewPriority] = useState("trung bình");
+  const [newTodoDate, setNewTodoDate] = useState(new Date().toISOString().slice(0, 10));
+  const [todoView, setTodoView] = useState<"today" | "history">("today");
+
+  // Reset todos qua ngày mới: lưu vào lịch sử, xóa todo cũ
+  useEffect(() => {
+    if (loading) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const oldTodos = data.todos.filter(t => t.date && t.date < today);
+    if (oldTodos.length === 0) return;
+
+    // Nhóm theo ngày và lưu vào lịch sử
+    const byDate: Record<string, typeof oldTodos> = {};
+    oldTodos.forEach(t => {
+      if (!byDate[t.date]) byDate[t.date] = [];
+      byDate[t.date].push(t);
+    });
+
+    const newHistory = [...(data.todoHistory || [])];
+    Object.entries(byDate).forEach(([date, items]) => {
+      const exists = newHistory.find(h => h.date === date);
+      if (!exists) newHistory.push({ date, items });
+    });
+
+    setData(d => ({
+      ...d,
+      todos: d.todos.filter(t => !t.date || t.date >= today),
+      todoHistory: newHistory,
+    }));
+  }, [loading]);
 
   // Goals
   const [newGoal, setNewGoal] = useState("");
@@ -126,7 +156,9 @@ export default function App() {
   const [newOutingAmount, setNewOutingAmount] = useState("");
 
   const totalStudyMinutes = data.studyLog.reduce((a, b) => a + b.minutes, 0);
-  const doneTodos = data.todos.filter((t) => t.done).length;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayTodos = data.todos.filter(t => !t.date || t.date === todayStr);
+  const doneTodos = todayTodos.filter((t) => t.done).length;
   const doneGoals = data.goals.filter((g) => g.done).length;
   const doneLessons = data.lessons.filter((l) => l.status === "hoàn thành").length;
   const totalSubjectItems = data.subjects.reduce((a, s) => a + s.items.length, 0);
@@ -146,7 +178,7 @@ export default function App() {
           <div style={{ display: "flex", gap: 12, marginBottom: 0, overflowX: "auto", paddingBottom: 4 }}>
             {[
               { label: "Bài học", value: `${doneSubjectItems}/${totalSubjectItems}`, icon: "📚" },
-              { label: "Việc xong", value: `${doneTodos}/${data.todos.length}`, icon: "✅" },
+              { label: "Việc xong", value: `${doneTodos}/${todayTodos.length}`, icon: "✅" },
               { label: "Mục tiêu", value: `${doneGoals}/${data.goals.length}`, icon: "🎯" },
               { label: "Thời gian", value: `${Math.floor(totalStudyMinutes / 60)}h${totalStudyMinutes % 60}m`, icon: "⏱️" },
               { label: "Bài soạn", value: `${doneLessons}/${data.lessons.length}`, icon: "📝" },
@@ -333,47 +365,120 @@ export default function App() {
         {/* TAB 1: Việc cần làm */}
         {tab === 1 && (
           <div>
-            <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-              <input value={newTodo} onChange={e => setNewTodo(e.target.value)}
-                placeholder="Thêm việc cần làm..." onKeyDown={e => {
-                  if (e.key === "Enter" && newTodo.trim()) {
-                    setData(d => ({ ...d, todos: [...d.todos, { id: Date.now(), text: newTodo.trim(), done: false, priority: newPriority }] }));
-                    setNewTodo("");
-                  }
-                }} style={{ ...inputStyle, flex: 1 }} />
-              <select value={newPriority} onChange={e => setNewPriority(e.target.value)} style={selectStyle}>
-                <option value="cao">🔴 Cao</option>
-                <option value="trung bình">🟡 Trung bình</option>
-                <option value="thấp">🟢 Thấp</option>
-              </select>
-              <button onClick={() => {
-                if (!newTodo.trim()) return;
-                setData(d => ({ ...d, todos: [...d.todos, { id: Date.now(), text: newTodo.trim(), done: false, priority: newPriority }] }));
-                setNewTodo("");
-              }} style={btnStyle}>+ Thêm</button>
+            {/* Switch hôm nay / lịch sử */}
+            <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+              {(["today", "history"] as const).map((v) => (
+                <button key={v} onClick={() => setTodoView(v)} style={{
+                  background: todoView === v ? "#38bdf8" : "#1e293b",
+                  color: todoView === v ? "#0f172a" : "#94a3b8",
+                  border: "none", borderRadius: 8, padding: "6px 16px",
+                  fontSize: 13, fontWeight: todoView === v ? 700 : 400, cursor: "pointer",
+                }}>
+                  {v === "today" ? "📋 Hôm nay" : "🗂️ Lịch sử"}
+                </button>
+              ))}
             </div>
-            {["cao", "trung bình", "thấp"].map(p => {
-              const items = data.todos.filter(t => t.priority === p);
-              if (!items.length) return null;
-              return (
-                <div key={p} style={{ marginBottom: 16 }}>
-                  <div style={{ fontSize: 12, color: PRIORITY_COLOR[p], fontWeight: 700, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>
-                    Ưu tiên {p}
-                  </div>
-                  {items.map(t => (
-                    <div key={t.id} style={{ background: "#1e293b", borderRadius: 10, padding: "10px 14px", marginBottom: 8, display: "flex", alignItems: "center", gap: 10, borderLeft: `3px solid ${PRIORITY_COLOR[p]}` }}>
-                      <input type="checkbox" checked={t.done}
-                        onChange={() => setData(d => ({ ...d, todos: d.todos.map(x => x.id === t.id ? { ...x, done: !x.done } : x) }))}
-                        style={{ width: 16, height: 16, accentColor: PRIORITY_COLOR[p], cursor: "pointer" }} />
-                      <span style={{ flex: 1, textDecoration: t.done ? "line-through" : "none", color: t.done ? "#475569" : "#e2e8f0" }}>{t.text}</span>
-                      <button onClick={() => setData(d => ({ ...d, todos: d.todos.filter(x => x.id !== t.id) }))}
-                        style={{ background: "none", border: "none", color: "#475569", cursor: "pointer" }}>✕</button>
-                    </div>
-                  ))}
+
+            {todoView === "today" && (
+              <div>
+                {/* Form thêm */}
+                <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+                  <input value={newTodo} onChange={e => setNewTodo(e.target.value)}
+                    placeholder="Thêm việc cần làm..."
+                    onKeyDown={e => {
+                      if (e.key === "Enter" && newTodo.trim()) {
+                        setData(d => ({ ...d, todos: [...d.todos, { id: Date.now(), text: newTodo.trim(), done: false, priority: newPriority, date: newTodoDate }] }));
+                        setNewTodo("");
+                      }
+                    }} style={{ ...inputStyle, flex: 1 }} />
+                  <input type="date" value={newTodoDate} onChange={e => setNewTodoDate(e.target.value)} style={inputStyle} />
+                  <select value={newPriority} onChange={e => setNewPriority(e.target.value)} style={selectStyle}>
+                    <option value="cao">🔴 Cao</option>
+                    <option value="trung bình">🟡 Trung bình</option>
+                    <option value="thấp">🟢 Thấp</option>
+                  </select>
+                  <button onClick={() => {
+                    if (!newTodo.trim()) return;
+                    setData(d => ({ ...d, todos: [...d.todos, { id: Date.now(), text: newTodo.trim(), done: false, priority: newPriority, date: newTodoDate }] }));
+                    setNewTodo("");
+                  }} style={btnStyle}>+ Thêm</button>
                 </div>
-              );
-            })}
-            {data.todos.length === 0 && <Empty text="Chưa có việc cần làm nào" />}
+
+                {/* Danh sách theo ưu tiên */}
+                {["cao", "trung bình", "thấp"].map(p => {
+                  const today = new Date().toISOString().slice(0, 10);
+                  const items = data.todos.filter(t => t.priority === p);
+                  if (!items.length) return null;
+                  return (
+                    <div key={p} style={{ marginBottom: 16 }}>
+                      <div style={{ fontSize: 12, color: PRIORITY_COLOR[p], fontWeight: 700, marginBottom: 6, textTransform: "uppercase" as const, letterSpacing: 1 }}>
+                        Ưu tiên {p}
+                      </div>
+                      {items.map(t => {
+                        const isOverdue = t.date && t.date < today && !t.done;
+                        return (
+                          <div key={t.id} style={{ background: "#1e293b", borderRadius: 10, padding: "10px 14px", marginBottom: 8, borderLeft: `3px solid ${isOverdue ? "#f43f5e" : PRIORITY_COLOR[p]}` }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              <input type="checkbox" checked={t.done}
+                                onChange={() => setData(d => ({ ...d, todos: d.todos.map(x => x.id === t.id ? { ...x, done: !x.done } : x) }))}
+                                style={{ width: 16, height: 16, accentColor: PRIORITY_COLOR[p], cursor: "pointer", flexShrink: 0 }} />
+                              <span style={{ flex: 1, textDecoration: t.done ? "line-through" : "none", color: t.done ? "#475569" : "#e2e8f0" }}>{t.text}</span>
+                              <button onClick={() => setData(d => ({ ...d, todos: d.todos.filter(x => x.id !== t.id) }))}
+                                style={{ background: "none", border: "none", color: "#475569", cursor: "pointer" }}>✕</button>
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 5, paddingLeft: 26 }}>
+                              {t.date && (
+                                <span style={{ fontSize: 11, color: "#64748b" }}>📅 {t.date}</span>
+                              )}
+                              {isOverdue && (
+                                <span style={{ fontSize: 11, color: "#f43f5e", fontWeight: 700 }}>⚠ Chưa hoàn thành</span>
+                              )}
+                              {t.done && (
+                                <span style={{ fontSize: 11, color: "#10b981", fontWeight: 700 }}>✓ Hoàn thành</span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+                {data.todos.length === 0 && <Empty text="Chưa có việc cần làm nào hôm nay" />}
+              </div>
+            )}
+
+            {todoView === "history" && (
+              <div>
+                {(!data.todoHistory || data.todoHistory.length === 0) && (
+                  <Empty text="Chưa có lịch sử việc cần làm" />
+                )}
+                {[...(data.todoHistory || [])].sort((a, b) => b.date.localeCompare(a.date)).map(h => {
+                  const doneCount = h.items.filter(i => i.done).length;
+                  return (
+                    <div key={h.date} style={{ background: "#1e293b", borderRadius: 12, marginBottom: 12, overflow: "hidden", border: "1px solid #243347" }}>
+                      <div style={{ padding: "10px 14px", borderBottom: "1px solid #243347", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontWeight: 700, fontSize: 14, color: "#f8fafc" }}>📅 {h.date}</span>
+                        <span style={{ fontSize: 12, color: doneCount === h.items.length ? "#10b981" : "#f43f5e" }}>
+                          {doneCount}/{h.items.length} hoàn thành
+                        </span>
+                      </div>
+                      <div style={{ padding: "8px 14px" }}>
+                        {h.items.map(item => (
+                          <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0", borderBottom: "1px solid #1a2740" }}>
+                            <span style={{ fontSize: 13, width: 8, height: 8, borderRadius: "50%", background: PRIORITY_COLOR[item.priority], flexShrink: 0, display: "inline-block" }} />
+                            <span style={{ flex: 1, fontSize: 13, color: item.done ? "#475569" : "#e2e8f0", textDecoration: item.done ? "line-through" : "none" }}>{item.text}</span>
+                            {item.done
+                              ? <span style={{ fontSize: 11, color: "#10b981", fontWeight: 700 }}>✓ Xong</span>
+                              : <span style={{ fontSize: 11, color: "#f43f5e", fontWeight: 700 }}>✗ Chưa xong</span>
+                            }
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
