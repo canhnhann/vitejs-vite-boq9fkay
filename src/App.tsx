@@ -345,17 +345,26 @@ function AddPanel({open, onClose, title, color="#38bdf8", children}:any){
 // Nút + nổi góc dưới phải
 function FabAdd({onClick, color="#38bdf8"}:any){
   return (
-    <button onClick={onClick} style={{
-      position:"fixed",right:20,bottom:"calc(env(safe-area-inset-bottom,16px) + 20px)",
+    <div style={{
+      position:"sticky",
+      bottom:"calc(env(safe-area-inset-bottom,16px) + 16px)",
+      display:"flex",justifyContent:"flex-end",
+      pointerEvents:"none",
       zIndex:150,
-      width:52,height:52,borderRadius:"50%",
-      background:color,border:"none",
-      color:"#0a0f1e",fontSize:26,fontWeight:700,
-      cursor:"pointer",
-      boxShadow:"0 4px 20px rgba(0,0,0,0.4)",
-      display:"flex",alignItems:"center",justifyContent:"center",
-      transition:"transform 0.15s",
-    }}>＋</button>
+      marginBottom:8,
+    }}>
+      <button onClick={onClick} style={{
+        pointerEvents:"all",
+        width:52,height:52,borderRadius:"50%",
+        background:color,border:"none",
+        color:"#0a0f1e",fontSize:26,fontWeight:700,
+        cursor:"pointer",
+        boxShadow:"0 4px 20px rgba(0,0,0,0.4)",
+        display:"flex",alignItems:"center",justifyContent:"center",
+        transition:"transform 0.15s",
+        flexShrink:0,
+      }}>＋</button>
+    </div>
   );
 }
 
@@ -914,7 +923,12 @@ function TabFinance({data,setData}:any) {
   return (
     <div>
       {/* FAB với menu chọn loại */}
-      <div style={{position:"fixed",right:20,bottom:"calc(env(safe-area-inset-bottom,16px) + 20px)",zIndex:150,display:"flex",flexDirection:"column",alignItems:"flex-end",gap:10}}>
+    <div style={{
+  position:"sticky",
+  bottom:"calc(env(safe-area-inset-bottom,16px) + 16px)",
+  display:"flex",flexDirection:"column",alignItems:"flex-end",
+  gap:10,pointerEvents:"none",zIndex:150,marginBottom:8,
+}}>
         {panelType===null && (
           <>
             {[
