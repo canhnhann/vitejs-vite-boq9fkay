@@ -1080,7 +1080,7 @@ function TabFinance({data,setData}:any) {
         {[...data.finance.outings].sort((a:any,b:any)=>b.date.localeCompare(a.date)).map((o:any)=>(
           <div key={o.id} style={{display:"flex",alignItems:"center",gap:8,padding:"9px 0",borderBottom:"1px solid #1a2735"}}>
             <span style={{fontSize:11,color:"#64748b",flexShrink:0,minWidth:76}}>📅 {o.date}</span>
-            <span style={{flex:1,fontSize:13,color:"#e2e8f0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{o.note||<span style={{color:"#475569",fontStyle:"italic"}}>Không ghi chú</span>}</span>
+            <span style={{flex:1,fontSize:13,color:"#e2e8f0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{o.note?o.note:<span style={{color:"#475569",fontStyle:"italic"}}>Không ghi chú</span>}</span>
             <span style={{fontWeight:700,color:"#a78bfa",fontSize:13,flexShrink:0}}>{(+o.amount).toLocaleString("vi-VN")}đ</span>
             <button onClick={()=>upd("outings",data.finance.outings.filter((x:any)=>x.id!==o.id))} style={S.delBtn}>✕</button>
           </div>
