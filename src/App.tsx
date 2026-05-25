@@ -3,1004 +3,898 @@ import { supabase } from "./supabase";
 
 const USER_ID = "my-tracker";
 
-const TABS = ["📚 Môn học", "✅ Việc cần làm", "🎯 Mục tiêu", "⏱️ Thời gian", "📝 Soạn bài", "💰 Chi tiêu"];
+// ─── Tab config ───────────────────────────────────────────────
+const TABS = [
+  { id: 0, icon: "📚", label: "Môn học" },
+  { id: 1, icon: "✅", label: "Việc làm" },
+  { id: 2, icon: "🎯", label: "Mục tiêu" },
+  { id: 3, icon: "⏱️", label: "Thời gian" },
+  { id: 4, icon: "📝", label: "Soạn bài" },
+  { id: 5, icon: "💰", label: "Chi tiêu" },
+];
+
+const COLORS = ["#f97316","#8b5cf6","#06b6d4","#10b981","#f43f5e","#facc15"];
+const PRIORITY_COLOR: Record<string,string> = { cao:"#f43f5e","trung bình":"#facc15",thấp:"#10b981" };
+const STATUS_COLOR: Record<string,string> = { "chưa soạn":"#f43f5e","đang soạn":"#facc15","hoàn thành":"#10b981" };
 
 const initialData = {
   subjects: [
-    { id: 1, name: "Toán", color: "#f97316", examDate: "", items: [
-      { id: 11, text: "Chương 1: Giới hạn", done: true },
-      { id: 12, text: "Chương 2: Đạo hàm", done: false },
-      { id: 13, text: "Chương 3: Tích phân", done: false },
+    { id:1, name:"Toán", color:"#f97316", examDate:"", items:[
+      {id:11,text:"Chương 1: Giới hạn",done:true},
+      {id:12,text:"Chương 2: Đạo hàm",done:false},
+      {id:13,text:"Chương 3: Tích phân",done:false},
     ]},
-    { id: 2, name: "Văn", color: "#8b5cf6", examDate: "", items: [
-      { id: 21, text: "Tác phẩm: Vợ nhặt", done: true },
-      { id: 22, text: "Tác phẩm: Chí Phèo", done: false },
+    { id:2, name:"Văn", color:"#8b5cf6", examDate:"", items:[
+      {id:21,text:"Tác phẩm: Vợ nhặt",done:true},
+      {id:22,text:"Tác phẩm: Chí Phèo",done:false},
     ]},
-    { id: 3, name: "Anh", color: "#06b6d4", examDate: "", items: [
-      { id: 31, text: "Unit 5: Environment", done: true },
-      { id: 32, text: "Unit 6: Technology", done: false },
+    { id:3, name:"Anh", color:"#06b6d4", examDate:"", items:[
+      {id:31,text:"Unit 5: Environment",done:true},
+      {id:32,text:"Unit 6: Technology",done:false},
     ]},
   ],
   todos: [
-    { id: 1, text: "Ôn tập chương 3 Toán", done: false, priority: "cao", date: new Date().toISOString().slice(0, 10) },
-    { id: 2, text: "Viết bài luận Văn", done: false, priority: "trung bình", date: new Date().toISOString().slice(0, 10) },
-    { id: 3, text: "Học từ vựng Unit 5", done: true, priority: "thấp", date: new Date().toISOString().slice(0, 10) },
+    {id:1,text:"Ôn tập chương 3 Toán",done:false,priority:"cao",date:new Date().toISOString().slice(0,10)},
+    {id:2,text:"Viết bài luận Văn",done:false,priority:"trung bình",date:new Date().toISOString().slice(0,10)},
+    {id:3,text:"Học từ vựng Unit 5",done:true,priority:"thấp",date:new Date().toISOString().slice(0,10)},
   ],
-  todoHistory: [] as { date: string; items: { id: number; text: string; done: boolean; priority: string }[] }[],
+  todoHistory: [] as {date:string;items:{id:number;text:string;done:boolean;priority:string}[]}[],
   goals: [
-    { id: 1, text: "Đạt 8.0 học kỳ này", deadline: "2025-06-30", done: false },
-    { id: 2, text: "Hoàn thành khóa học lập trình", deadline: "2025-07-15", done: false },
+    {id:1,text:"Đạt 8.0 học kỳ này",deadline:"2025-06-30",done:false},
+    {id:2,text:"Hoàn thành khóa học lập trình",deadline:"2025-07-15",done:false},
   ],
-  studyLog: [],
+  studyLog: [] as {id:number;date:string;minutes:number;note:string}[],
   lessons: [
-    { id: 1, subject: "Toán", lesson: "Chương 4: Đạo hàm", status: "chưa soạn" },
-    { id: 2, subject: "Văn", lesson: "Tác phẩm: Vợ nhặt", status: "đang soạn" },
-    { id: 3, subject: "Anh", lesson: "Unit 6: Technology", status: "hoàn thành" },
+    {id:1,subject:"Toán",lesson:"Chương 4: Đạo hàm",status:"chưa soạn"},
+    {id:2,subject:"Văn",lesson:"Tác phẩm: Vợ nhặt",status:"đang soạn"},
+    {id:3,subject:"Anh",lesson:"Unit 6: Technology",status:"hoàn thành"},
   ],
   finance: {
-    month: new Date().toISOString().slice(0, 7),
+    month: new Date().toISOString().slice(0,7),
     income: [
-      { id: 1, label: "Dạy kèm Toán", amount: 0 },
-      { id: 2, label: "Dạy kèm Lý", amount: 0 },
-      { id: 3, label: "Lương làm việc", amount: 0 },
+      {id:1,label:"Dạy kèm Toán",amount:0},
+      {id:2,label:"Dạy kèm Lý",amount:0},
+      {id:3,label:"Lương làm việc",amount:0},
     ],
     debt: [
-      { id: 1, label: "Seasy", amount: 0, paid: false },
-      { id: 2, label: "HD", amount: 0, paid: false },
-      { id: 3, label: "Spay", amount: 0, paid: false },
-      { id: 4, label: "Nợ ngoài app", amount: 0, paid: false },
+      {id:1,label:"Seasy",amount:0,paid:false},
+      {id:2,label:"HD",amount:0,paid:false},
+      {id:3,label:"Spay",amount:0,paid:false},
+      {id:4,label:"Nợ ngoài app",amount:0,paid:false},
     ],
     expenses: [
-      { id: 1, label: "Xăng xe", amount: 0, min: 500000 },
-      { id: 2, label: "Tiết kiệm", amount: 0, min: 300000 },
+      {id:1,label:"Xăng xe",amount:0,min:500000},
+      {id:2,label:"Tiết kiệm",amount:0,min:300000},
     ],
-    outings: [],
+    outings: [] as {id:number;date:string;note:string;amount:number}[],
   },
 };
 
-const COLORS = ["#f97316", "#8b5cf6", "#06b6d4", "#10b981", "#f43f5e", "#facc15"];
-const PRIORITY_COLOR = { cao: "#f43f5e", "trung bình": "#facc15", thấp: "#10b981" };
-const STATUS_COLOR = { "chưa soạn": "#f43f5e", "đang soạn": "#facc15", "hoàn thành": "#10b981" };
+// ─── Shared styles ─────────────────────────────────────────────
+const S = {
+  input: {
+    background:"#111827", border:"1px solid #1f2d44", borderRadius:10,
+    padding:"11px 14px", color:"#e2e8f0", fontSize:15, outline:"none",
+    width:"100%", WebkitAppearance:"none" as const,
+  } as React.CSSProperties,
+  select: {
+    background:"#111827", border:"1px solid #1f2d44", borderRadius:10,
+    padding:"11px 14px", color:"#e2e8f0", fontSize:15, outline:"none",
+    cursor:"pointer", WebkitAppearance:"none" as const,
+  } as React.CSSProperties,
+  btn: {
+    background:"#38bdf8", border:"none", borderRadius:10, padding:"11px 18px",
+    color:"#0a0f1e", fontWeight:700, fontSize:15, cursor:"pointer",
+    whiteSpace:"nowrap" as const, flexShrink:0,
+  } as React.CSSProperties,
+  card: {
+    background:"#111827", borderRadius:14, border:"1px solid #1f2d44",
+    marginBottom:10,
+  } as React.CSSProperties,
+  row: {
+    display:"flex" as const, alignItems:"center" as const, gap:10,
+    padding:"11px 14px", borderBottom:"1px solid #1a2735",
+  } as React.CSSProperties,
+  delBtn: {
+    background:"none", border:"none", color:"#334155", cursor:"pointer",
+    fontSize:18, padding:"4px 6px", lineHeight:1, flexShrink:0,
+  } as React.CSSProperties,
+};
 
+// ─── App ───────────────────────────────────────────────────────
 export default function App() {
   const [tab, setTab] = useState(0);
   const [data, setData] = useState(initialData);
   const [loading, setLoading] = useState(true);
-  const saveTimer = useRef(null);
+  const saveTimer = useRef<ReturnType<typeof setTimeout>|null>(null);
 
+  // Load from Supabase
   useEffect(() => {
-    supabase
-      .from("tracker_data")
-      .select("data")
-      .eq("user_id", USER_ID)
-      .maybeSingle()
-      .then(({ data: row }) => {
-        if (row?.data) setData(row.data);
-        setLoading(false);
-      });
+    supabase.from("tracker_data").select("data").eq("user_id",USER_ID).maybeSingle()
+      .then(({data:row}) => { if (row?.data) setData(row.data); setLoading(false); });
   }, []);
 
+  // Debounce save
   useEffect(() => {
     if (loading) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      supabase
-        .from("tracker_data")
-        .upsert({ user_id: USER_ID, data, updated_at: new Date() })
-        .then(({ error }) => {
-          if (error) console.error("Loi luu:", error.message);
-        });
+      supabase.from("tracker_data")
+        .upsert({user_id:USER_ID, data, updated_at:new Date()})
+        .then(({error}) => { if (error) console.error("Lỗi lưu:", error.message); });
     }, 600);
   }, [data, loading]);
 
-  // Subjects
-  const [newSubject, setNewSubject] = useState("");
-  const [newSubjectColor, setNewSubjectColor] = useState(COLORS[3]);
-  const [newSubjectItem, setNewSubjectItem] = useState({});   // { [subjectId]: string }
-  const [expandedSubject, setExpandedSubject] = useState(null);
-
-  // Todos
-  const [newTodo, setNewTodo] = useState("");
-  const [newPriority, setNewPriority] = useState("trung bình");
-  const [newTodoDate, setNewTodoDate] = useState(new Date().toISOString().slice(0, 10));
-  const [todoView, setTodoView] = useState<"today" | "history">("today");
-  const [todoSubView, setTodoSubView] = useState<"pending" | "done">("pending");
-
-  // Reset todos qua ngày mới: lưu vào lịch sử, xóa todo cũ, giữ tối đa 14 ngày
-  const runDailyReset = useCallback((currentData: typeof initialData) => {
-    const today = new Date().toISOString().slice(0, 10);
-    // Todos không có date hoặc date < today đều bị reset
-    const oldTodos = currentData.todos.filter(t => !t.date || t.date < today);
-    if (oldTodos.length === 0) return null;
-
-    // Nhóm theo ngày (todo không có date → gán vào hôm qua)
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-    const byDate: Record<string, typeof oldTodos> = {};
-    oldTodos.forEach(t => {
-      const key = t.date && t.date < today ? t.date : yesterday;
-      if (!byDate[key]) byDate[key] = [];
-      byDate[key].push(t);
+  // ─ Daily reset
+  const runDailyReset = useCallback((cur: typeof initialData) => {
+    const today = new Date().toISOString().slice(0,10);
+    const oldTodos = cur.todos.filter(t => !t.date || t.date < today);
+    if (!oldTodos.length) return null;
+    const yest = new Date(Date.now()-86400000).toISOString().slice(0,10);
+    const byDate: Record<string,typeof oldTodos> = {};
+    oldTodos.forEach(t => { const k = t.date && t.date<today ? t.date : yest; (byDate[k]??=[]).push(t); });
+    const hist = [...(cur.todoHistory||[])];
+    Object.entries(byDate).forEach(([d,items]) => {
+      const i = hist.findIndex(h=>h.date===d);
+      if (i===-1) hist.push({date:d,items});
+      else { const ex=new Set(hist[i].items.map(x=>x.id)); hist[i]={...hist[i],items:[...hist[i].items,...items.filter(x=>!ex.has(x.id))]}; }
     });
-
-    const newHistory = [...(currentData.todoHistory || [])];
-    Object.entries(byDate).forEach(([date, items]) => {
-      const existsIdx = newHistory.findIndex(h => h.date === date);
-      if (existsIdx === -1) {
-        newHistory.push({ date, items });
-      } else {
-        // Merge: thêm item chưa có vào entry đã tồn tại
-        const existing = new Set(newHistory[existsIdx].items.map(i => i.id));
-        const merged = [...newHistory[existsIdx].items, ...items.filter(i => !existing.has(i.id))];
-        newHistory[existsIdx] = { ...newHistory[existsIdx], items: merged };
-      }
-    });
-
-    // Giữ tối đa 14 ngày gần nhất
-    const trimmed = newHistory
-      .sort((a, b) => b.date.localeCompare(a.date))
-      .slice(0, 14);
-
-    return {
-      todos: currentData.todos.filter(t => t.date && t.date >= today),
-      todoHistory: trimmed,
-    };
+    return { todos:cur.todos.filter(t=>t.date&&t.date>=today), todoHistory:hist.sort((a,b)=>b.date.localeCompare(a.date)).slice(0,14) };
   }, []);
 
   useEffect(() => {
     if (loading) return;
-
-    // Chạy ngay khi load xong
     const patch = runDailyReset(data);
-    if (patch) setData(d => ({ ...d, ...patch }));
-
-    // Tính mili-giây đến 0h hôm sau để schedule reset chính xác
-    const scheduleNextMidnight = () => {
-      const now = new Date();
-      const midnight = new Date(now);
-      midnight.setHours(24, 0, 0, 0); // 0h ngày tiếp theo
-      return midnight.getTime() - now.getTime();
+    if (patch) setData(d=>({...d,...patch}));
+    let tid: ReturnType<typeof setTimeout>;
+    const sched = () => {
+      const now=new Date(), m=new Date(now); m.setHours(24,0,0,0);
+      tid=setTimeout(()=>{ setData(d=>{const p=runDailyReset(d);return p?{...d,...p}:d;}); sched(); }, m.getTime()-now.getTime());
     };
+    sched();
+    return ()=>clearTimeout(tid);
+  }, [loading]); // eslint-disable-line
 
-    let timeoutId: ReturnType<typeof setTimeout>;
-    const scheduleMidnightReset = () => {
-      timeoutId = setTimeout(() => {
-        setData(d => {
-          const patch = runDailyReset(d);
-          return patch ? { ...d, ...patch } : d;
-        });
-        scheduleMidnightReset(); // lên lịch cho ngày tiếp theo
-      }, scheduleNextMidnight());
-    };
+  // ─ Stats
+  const todayStr = new Date().toISOString().slice(0,10);
+  const totalStudyMin = data.studyLog.reduce((a,b)=>a+b.minutes,0);
+  const todayTodos = data.todos.filter(t=>!t.date||t.date===todayStr);
+  const doneTodos = todayTodos.filter(t=>t.done).length;
+  const doneGoals = data.goals.filter(g=>g.done).length;
+  const doneLessons = data.lessons.filter(l=>l.status==="hoàn thành").length;
+  const totalItems = data.subjects.reduce((a,s)=>a+s.items.length,0);
+  const doneItems = data.subjects.reduce((a,s)=>a+s.items.filter(i=>i.done).length,0);
 
-    scheduleMidnightReset();
-    return () => clearTimeout(timeoutId);
-  }, [loading]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Goals
-  const [newGoal, setNewGoal] = useState("");
-  const [newDeadline, setNewDeadline] = useState("");
-
-  // Study Log
-  const [studyDate, setStudyDate] = useState(new Date().toISOString().slice(0, 10));
-  const [studyMinutes, setStudyMinutes] = useState("");
-  const [studyNote, setStudyNote] = useState("");
-
-  // Lessons
-  const [newLesson, setNewLesson] = useState("");
-  const [newLessonSubject, setNewLessonSubject] = useState("");
-  const [newLessonStatus, setNewLessonStatus] = useState("chưa soạn");
-
-  // Finance
-  const [newIncomeLabel, setNewIncomeLabel] = useState("");
-  const [newDebtLabel, setNewDebtLabel] = useState("");
-  const [newExpenseLabel, setNewExpenseLabel] = useState("");
-  const [newExpenseMin, setNewExpenseMin] = useState("");
-  const [newOutingDate, setNewOutingDate] = useState(new Date().toISOString().slice(0, 10));
-  const [newOutingNote, setNewOutingNote] = useState("");
-  const [newOutingAmount, setNewOutingAmount] = useState("");
-
-  const totalStudyMinutes = data.studyLog.reduce((a, b) => a + b.minutes, 0);
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const todayTodos = data.todos.filter(t => !t.date || t.date === todayStr);
-  const doneTodos = todayTodos.filter((t) => t.done).length;
-  const doneGoals = data.goals.filter((g) => g.done).length;
-  const doneLessons = data.lessons.filter((l) => l.status === "hoàn thành").length;
-  const totalSubjectItems = data.subjects.reduce((a, s) => a + s.items.length, 0);
-  const doneSubjectItems = data.subjects.reduce((a, s) => a + s.items.filter(i => i.done).length, 0);
+  const stats = [
+    {icon:"📚",val:`${doneItems}/${totalItems}`,lbl:"Bài học"},
+    {icon:"✅",val:`${doneTodos}/${todayTodos.length}`,lbl:"Hôm nay"},
+    {icon:"🎯",val:`${doneGoals}/${data.goals.length}`,lbl:"Mục tiêu"},
+    {icon:"⏱️",val:`${Math.floor(totalStudyMin/60)}h${totalStudyMin%60}m`,lbl:"Học"},
+    {icon:"📝",val:`${doneLessons}/${data.lessons.length}`,lbl:"Soạn"},
+  ];
 
   return (
-    <div style={{ fontFamily: "'Segoe UI', sans-serif", background: "#0f172a", minHeight: "100vh", color: "#e2e8f0" }}>
-      {/* Header */}
-      <div style={{ background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)", padding: "24px 20px 0", borderBottom: "1px solid #1e293b" }}>
-        <div style={{ maxWidth: 720, margin: "0 auto" }}>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "#f8fafc", letterSpacing: "-0.5px" }}>
-            📖 KAQ soneG Tracker
-          </h1>
-          <p style={{ margin: "4px 0 16px", fontSize: 13, color: "#64748b" }}>Theo dõi tiến trình cuộc đời</p>
+    <div style={{display:"flex",flexDirection:"column",minHeight:"100svh",background:"#0a0f1e"}}>
 
-          {/* Stats bar */}
-          <div style={{ display: "flex", gap: 12, marginBottom: 0, overflowX: "auto", paddingBottom: 4 }}>
-            {[
-              { label: "Bài học", value: `${doneSubjectItems}/${totalSubjectItems}`, icon: "📚" },
-              { label: "Việc xong", value: `${doneTodos}/${todayTodos.length}`, icon: "✅" },
-              { label: "Mục tiêu", value: `${doneGoals}/${data.goals.length}`, icon: "🎯" },
-              { label: "Thời gian", value: `${Math.floor(totalStudyMinutes / 60)}h${totalStudyMinutes % 60}m`, icon: "⏱️" },
-              { label: "Bài soạn", value: `${doneLessons}/${data.lessons.length}`, icon: "📝" },
-            ].map((s) => (
-              <div key={s.label} style={{ background: "#1e293b", borderRadius: 10, padding: "8px 14px", minWidth: 80, textAlign: "center", flexShrink: 0 }}>
-                <div style={{ fontSize: 18 }}>{s.icon}</div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "#38bdf8" }}>{s.value}</div>
-                <div style={{ fontSize: 11, color: "#64748b" }}>{s.label}</div>
+      {/* ── Header ── */}
+      <div style={{
+        background:"linear-gradient(180deg,#111827 0%,#0d1829 100%)",
+        paddingTop:"env(safe-area-inset-top, 12px)",
+        borderBottom:"1px solid #1f2d44",
+        position:"sticky",top:0,zIndex:100,
+      }}>
+        <div style={{padding:"12px 16px 0"}}>
+          <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between"}}>
+            <h1 style={{margin:0,fontSize:20,fontWeight:800,color:"#f8fafc",letterSpacing:"-0.5px"}}>
+              📖 KAQ Tracker
+            </h1>
+            {loading && <span style={{fontSize:12,color:"#38bdf8",animation:"pulse 1s infinite"}}>đang tải…</span>}
+          </div>
+          <p style={{margin:"2px 0 10px",fontSize:12,color:"#475569"}}>Theo dõi tiến trình cuộc đời</p>
+
+          {/* Stats row */}
+          <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:10}}>
+            {stats.map(s=>(
+              <div key={s.lbl} style={{
+                background:"#0d1829",borderRadius:12,padding:"8px 10px",
+                textAlign:"center",flexShrink:0,minWidth:64,
+                border:"1px solid #1f2d44",
+              }}>
+                <div style={{fontSize:16}}>{s.icon}</div>
+                <div style={{fontSize:14,fontWeight:800,color:"#38bdf8",lineHeight:1.2}}>{s.val}</div>
+                <div style={{fontSize:10,color:"#64748b",marginTop:1}}>{s.lbl}</div>
               </div>
             ))}
           </div>
 
-          {/* Tabs */}
-          <div style={{ display: "flex", gap: 0, marginTop: 16, overflowX: "auto" }}>
-            {TABS.map((t, i) => (
-              <button key={i} onClick={() => setTab(i)}
-                style={{
-                  background: tab === i ? "#38bdf8" : "transparent",
-                  color: tab === i ? "#0f172a" : "#94a3b8",
-                  border: "none", padding: "8px 14px", cursor: "pointer",
-                  fontSize: 13, fontWeight: tab === i ? 700 : 400,
-                  borderRadius: "8px 8px 0 0", whiteSpace: "nowrap", flexShrink: 0,
-                  transition: "all 0.15s",
-                }}>
-                {t}
+          {/* Tab bar (top) */}
+          <div style={{display:"flex",gap:4,overflowX:"auto",paddingBottom:0}}>
+            {TABS.map(t=>(
+              <button key={t.id} onClick={()=>setTab(t.id)} style={{
+                background:tab===t.id?"#38bdf8":"transparent",
+                color:tab===t.id?"#0a0f1e":"#64748b",
+                border:"none",padding:"7px 12px",cursor:"pointer",
+                fontSize:12,fontWeight:tab===t.id?800:500,
+                borderRadius:"8px 8px 0 0",whiteSpace:"nowrap",flexShrink:0,
+                transition:"all 0.15s",
+              }}>
+                {t.icon} {t.label}
               </button>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Content */}
-      <div style={{ maxWidth: 720, margin: "0 auto", padding: "20px 16px" }}>
+      {/* ── Content ── */}
+      <div style={{flex:1,padding:"14px 14px",paddingBottom:"calc(env(safe-area-inset-bottom,16px) + 16px)",overflowY:"auto"}}>
+        {tab===0 && <TabSubjects data={data} setData={setData}/>}
+        {tab===1 && <TabTodos data={data} setData={setData} todayStr={todayStr}/>}
+        {tab===2 && <TabGoals data={data} setData={setData}/>}
+        {tab===3 && <TabStudy data={data} setData={setData} totalMin={totalStudyMin}/>}
+        {tab===4 && <TabLessons data={data} setData={setData} doneLessons={doneLessons}/>}
+        {tab===5 && <TabFinance data={data} setData={setData}/>}
+      </div>
 
-        {/* TAB 0: Môn học */}
-        {tab === 0 && (
-          <div>
-            {/* Thêm môn mới */}
-            <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
-              <input value={newSubject} onChange={e => setNewSubject(e.target.value)}
-                placeholder="Tên môn học..." onKeyDown={e => {
-                  if (e.key === "Enter" && newSubject.trim()) {
-                    const id = Date.now();
-                    setData(d => ({ ...d, subjects: [...d.subjects, { id, name: newSubject.trim(), color: newSubjectColor, examDate: "", items: [] }] }));
-                    setNewSubject("");
-                    setExpandedSubject(id);
-                  }
-                }}
-                style={inputStyle} />
-              <div style={{ display: "flex", gap: 4 }}>
-                {COLORS.map(c => (
-                  <div key={c} onClick={() => setNewSubjectColor(c)}
-                    style={{ width: 22, height: 22, borderRadius: "50%", background: c, cursor: "pointer", border: newSubjectColor === c ? "2px solid white" : "2px solid transparent" }} />
-                ))}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// TAB 0 — MÔN HỌC
+// ══════════════════════════════════════════════════════════════
+function TabSubjects({data,setData}:any) {
+  const [name,setName]=useState("");
+  const [color,setColor]=useState(COLORS[3]);
+  const [newItem,setNewItem]=useState<Record<number,string>>({});
+  const [expanded,setExpanded]=useState<number|null>(null);
+
+  const addSubject=()=>{
+    if (!name.trim()) return;
+    const id=Date.now();
+    setData((d:any)=>({...d,subjects:[...d.subjects,{id,name:name.trim(),color,examDate:"",items:[]}]}));
+    setName(""); setExpanded(id);
+  };
+
+  return (
+    <div>
+      {/* Add row */}
+      <div style={{...S.card,padding:14,marginBottom:14}}>
+        <input value={name} onChange={e=>setName(e.target.value)}
+          placeholder="Tên môn học..." onKeyDown={e=>e.key==="Enter"&&addSubject()}
+          style={{...S.input,marginBottom:10}}/>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          <div style={{display:"flex",gap:6,flex:1}}>
+            {COLORS.map(c=>(
+              <div key={c} onClick={()=>setColor(c)} style={{
+                width:26,height:26,borderRadius:"50%",background:c,cursor:"pointer",
+                border:color===c?"2.5px solid #fff":"2.5px solid transparent",
+                boxShadow:color===c?"0 0 0 1px "+c:"none",
+              }}/>
+            ))}
+          </div>
+          <button onClick={addSubject} style={{...S.btn,padding:"9px 16px",fontSize:14}}>+ Thêm</button>
+        </div>
+      </div>
+
+      {data.subjects.length===0 && <Empty text="Chưa có môn học nào"/>}
+      {[...data.subjects].sort((a:any,b:any)=>{
+        if(!a.examDate&&!b.examDate) return 0;
+        if(!a.examDate) return 1; if(!b.examDate) return -1;
+        return new Date(a.examDate).getTime()-new Date(b.examDate).getTime();
+      }).map((s:any)=>{
+        const done=s.items.filter((i:any)=>i.done).length;
+        const total=s.items.length;
+        const pct=total?Math.round(done/total*100):0;
+        const isOpen=expanded===s.id;
+        const daysLeft=s.examDate?Math.ceil((new Date(s.examDate).getTime()-Date.now())/86400000):null;
+        const passed=daysLeft!==null&&daysLeft<0;
+        const soon=daysLeft!==null&&daysLeft>=0&&daysLeft<=7;
+        const cdColor=passed?"#475569":soon?"#f43f5e":"#38bdf8";
+
+        return (
+          <div key={s.id} style={S.card}>
+            {/* Subject header */}
+            <div onClick={()=>setExpanded(isOpen?null:s.id)} style={{
+              display:"flex",alignItems:"center",gap:10,padding:"12px 14px",cursor:"pointer",userSelect:"none",
+            }}>
+              <span style={{width:12,height:12,borderRadius:"50%",background:s.color,flexShrink:0,display:"inline-block"}}/>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:700,fontSize:15,color:"#f8fafc"}}>{s.name}</div>
+                {daysLeft!==null&&(
+                  <div style={{fontSize:11,color:cdColor,fontWeight:600}}>
+                    🎯 {passed?`Đã thi (${s.examDate})`:daysLeft===0?"Thi hôm nay!":`Còn ${daysLeft} ngày • ${s.examDate}`}
+                  </div>
+                )}
               </div>
-              <button onClick={() => {
-                if (!newSubject.trim()) return;
-                const id = Date.now();
-                setData(d => ({ ...d, subjects: [...d.subjects, { id, name: newSubject.trim(), color: newSubjectColor, examDate: "", items: [] }] }));
-                setNewSubject("");
-                setExpandedSubject(id);
-              }} style={btnStyle}>+ Thêm môn</button>
+              <span style={{fontSize:12,color:"#64748b",flexShrink:0}}>{done}/{total}</span>
+              <div style={{width:48,height:5,background:"#0d1829",borderRadius:999,overflow:"hidden",flexShrink:0}}>
+                <div style={{width:`${pct}%`,height:"100%",background:s.color,borderRadius:999,transition:"width 0.3s"}}/>
+              </div>
+              <span style={{fontSize:12,color:s.color,fontWeight:700,minWidth:32,textAlign:"right"}}>{pct}%</span>
+              <button onClick={e=>{e.stopPropagation();setData((d:any)=>({...d,subjects:d.subjects.filter((x:any)=>x.id!==s.id)}));}}
+                style={S.delBtn}>✕</button>
+              <span style={{color:"#475569",fontSize:12}}>{isOpen?"▲":"▼"}</span>
             </div>
 
-            {[...data.subjects].sort((a, b) => {
-              if (!a.examDate && !b.examDate) return 0;
-              if (!a.examDate) return 1;
-              if (!b.examDate) return -1;
-              return new Date(a.examDate) - new Date(b.examDate);
-            }).map(s => {
-              const done = s.items.filter(i => i.done).length;
-              const total = s.items.length;
-              const pct = total ? Math.round((done / total) * 100) : 0;
-              const isOpen = expandedSubject === s.id;
-              const daysLeft = s.examDate ? Math.ceil((new Date(s.examDate) - new Date()) / 86400000) : null;
-              const examPassed = daysLeft !== null && daysLeft < 0;
-              const examSoon = daysLeft !== null && daysLeft >= 0 && daysLeft <= 7;
-              const countdownColor = examPassed ? "#475569" : examSoon ? "#f43f5e" : "#38bdf8";
-
-              return (
-                <div key={s.id} style={{ background: "#1e293b", borderRadius: 12, marginBottom: 12, overflow: "hidden", border: `1px solid #243347` }}>
-                  {/* Header môn */}
-                  <div onClick={() => setExpandedSubject(isOpen ? null : s.id)}
-                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", cursor: "pointer", userSelect: "none" }}>
-                    <span style={{ display: "inline-block", width: 12, height: 12, borderRadius: "50%", background: s.color, flexShrink: 0 }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ fontWeight: 700, fontSize: 15, color: "#f8fafc" }}>{s.name}</span>
-                      {daysLeft !== null && (
-                        <div style={{ fontSize: 11, color: countdownColor, fontWeight: 600, marginTop: 2 }}>
-                          🎯 {examPassed ? `Đã thi (${s.examDate})` : daysLeft === 0 ? "Thi hôm nay!" : `Còn ${daysLeft} ngày thi • ${s.examDate}`}
-                        </div>
-                      )}
-                    </div>
-                    <span style={{ fontSize: 12, color: "#64748b" }}>{done}/{total} bài</span>
-                    {/* mini progress */}
-                    <div style={{ width: 60, height: 6, background: "#0f172a", borderRadius: 999, overflow: "hidden" }}>
-                      <div style={{ width: `${pct}%`, height: "100%", background: s.color, borderRadius: 999, transition: "width 0.3s" }} />
-                    </div>
-                    <span style={{ fontSize: 12, color: s.color, fontWeight: 700, minWidth: 34, textAlign: "right" }}>{pct}%</span>
-                    <button onClick={e => { e.stopPropagation(); setData(d => ({ ...d, subjects: d.subjects.filter(x => x.id !== s.id) })); }}
-                      style={{ background: "none", border: "none", color: "#475569", cursor: "pointer", fontSize: 15, marginLeft: 4 }}>✕</button>
-                    <span style={{ color: "#475569", fontSize: 12 }}>{isOpen ? "▲" : "▼"}</span>
-                  </div>
-
-                  {/* List bài học */}
-                  {isOpen && (
-                    <div style={{ borderTop: "1px solid #243347", padding: "10px 14px" }}>
-                      {/* Ngày thi */}
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, paddingBottom: 10, borderBottom: "1px solid #243347" }}>
-                        <span style={{ fontSize: 13, color: "#94a3b8", flexShrink: 0 }}>🎯 Ngày thi:</span>
-                        <input type="date" value={s.examDate || ""}
-                          onChange={e => setData(d => ({ ...d, subjects: d.subjects.map(x => x.id === s.id ? { ...x, examDate: e.target.value } : x) }))}
-                          style={{ ...inputStyle, fontSize: 13, padding: "4px 8px", flex: 1 }} />
-                        {s.examDate && (
-                          <button onClick={() => setData(d => ({ ...d, subjects: d.subjects.map(x => x.id === s.id ? { ...x, examDate: "" } : x) }))}
-                            style={{ background: "none", border: "none", color: "#475569", cursor: "pointer", fontSize: 13 }}>✕ Xoá</button>
-                        )}
-                      </div>
-                      {s.items.length === 0 && (
-                        <div style={{ fontSize: 13, color: "#475569", marginBottom: 10 }}>Chưa có bài học nào. Thêm bài bên dưới!</div>
-                      )}
-                      {s.items.map(item => (
-                        <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: "1px solid #1a2740" }}>
-                          <input type="checkbox" checked={item.done}
-                            onChange={() => setData(d => ({
-                              ...d,
-                              subjects: d.subjects.map(x => x.id === s.id
-                                ? { ...x, items: x.items.map(i => i.id === item.id ? { ...i, done: !i.done } : i) }
-                                : x)
-                            }))}
-                            style={{ width: 15, height: 15, accentColor: s.color, cursor: "pointer", flexShrink: 0 }} />
-                          <span style={{
-                            flex: 1, fontSize: 14,
-                            color: item.done ? "#475569" : "#e2e8f0",
-                            textDecoration: item.done ? "line-through" : "none"
-                          }}>{item.text}</span>
-                          <button onClick={() => setData(d => ({
-                            ...d,
-                            subjects: d.subjects.map(x => x.id === s.id
-                              ? { ...x, items: x.items.filter(i => i.id !== item.id) }
-                              : x)
-                          }))} style={{ background: "none", border: "none", color: "#334155", cursor: "pointer", fontSize: 14 }}>✕</button>
-                        </div>
-                      ))}
-
-                      {/* Input thêm bài */}
-                      <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                        <input
-                          value={newSubjectItem[s.id] || ""}
-                          onChange={e => setNewSubjectItem(prev => ({ ...prev, [s.id]: e.target.value }))}
-                          onKeyDown={e => {
-                            if (e.key === "Enter" && (newSubjectItem[s.id] || "").trim()) {
-                              setData(d => ({
-                                ...d,
-                                subjects: d.subjects.map(x => x.id === s.id
-                                  ? { ...x, items: [...x.items, { id: Date.now(), text: newSubjectItem[s.id].trim(), done: false }] }
-                                  : x)
-                              }));
-                              setNewSubjectItem(prev => ({ ...prev, [s.id]: "" }));
-                            }
-                          }}
-                          placeholder="Thêm bài học..." style={{ ...inputStyle, flex: 1, fontSize: 13, padding: "6px 10px" }} />
-                        <button onClick={() => {
-                          const val = (newSubjectItem[s.id] || "").trim();
-                          if (!val) return;
-                          setData(d => ({
-                            ...d,
-                            subjects: d.subjects.map(x => x.id === s.id
-                              ? { ...x, items: [...x.items, { id: Date.now(), text: val, done: false }] }
-                              : x)
-                          }));
-                          setNewSubjectItem(prev => ({ ...prev, [s.id]: "" }));
-                        }} style={{ ...btnStyle, padding: "6px 12px", fontSize: 13 }}>+ Thêm</button>
-                      </div>
-                    </div>
+            {isOpen&&(
+              <div style={{borderTop:"1px solid #1f2d44",padding:"12px 14px"}}>
+                {/* Exam date */}
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12,paddingBottom:12,borderBottom:"1px solid #1f2d44"}}>
+                  <span style={{fontSize:13,color:"#94a3b8",flexShrink:0}}>🎯 Ngày thi:</span>
+                  <input type="date" value={s.examDate||""}
+                    onChange={e=>setData((d:any)=>({...d,subjects:d.subjects.map((x:any)=>x.id===s.id?{...x,examDate:e.target.value}:x)}))}
+                    style={{...S.input,fontSize:13,padding:"6px 10px",flex:1}}/>
+                  {s.examDate&&(
+                    <button onClick={()=>setData((d:any)=>({...d,subjects:d.subjects.map((x:any)=>x.id===s.id?{...x,examDate:""}:x)}))}
+                      style={{...S.delBtn,fontSize:13}}>✕</button>
                   )}
                 </div>
-              );
-            })}
-            {data.subjects.length === 0 && <Empty text="Chưa có môn học nào" />}
-          </div>
-        )}
 
-        {/* TAB 1: Việc cần làm */}
-        {tab === 1 && (
-          <div>
-            {/* Switch hôm nay / lịch sử */}
-            <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-              {(["today", "history"] as const).map((v) => (
-                <button key={v} onClick={() => setTodoView(v)} style={{
-                  background: todoView === v ? "#38bdf8" : "#1e293b",
-                  color: todoView === v ? "#0f172a" : "#94a3b8",
-                  border: "none", borderRadius: 8, padding: "6px 16px",
-                  fontSize: 13, fontWeight: todoView === v ? 700 : 400, cursor: "pointer",
-                }}>
-                  {v === "today" ? "📋 Hôm nay" : "🗂️ Lịch sử"}
-                </button>
-              ))}
-            </div>
-
-            {todoView === "today" && (
-              <div>
-                {/* Form thêm */}
-                <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-                  <input value={newTodo} onChange={e => setNewTodo(e.target.value)}
-                    placeholder="Thêm việc cần làm..."
-                    onKeyDown={e => {
-                      if (e.key === "Enter" && newTodo.trim()) {
-                        setData(d => ({ ...d, todos: [...d.todos, { id: Date.now(), text: newTodo.trim(), done: false, priority: newPriority, date: newTodoDate }] }));
-                        setNewTodo("");
-                      }
-                    }} style={{ ...inputStyle, flex: 1 }} />
-                  <input type="date" value={newTodoDate} onChange={e => setNewTodoDate(e.target.value)} style={inputStyle} />
-                  <select value={newPriority} onChange={e => setNewPriority(e.target.value)} style={selectStyle}>
-                    <option value="cao">🔴 Cao</option>
-                    <option value="trung bình">🟡 Trung bình</option>
-                    <option value="thấp">🟢 Thấp</option>
-                  </select>
-                  <button onClick={() => {
-                    if (!newTodo.trim()) return;
-                    setData(d => ({ ...d, todos: [...d.todos, { id: Date.now(), text: newTodo.trim(), done: false, priority: newPriority, date: newTodoDate }] }));
-                    setNewTodo("");
-                  }} style={btnStyle}>+ Thêm</button>
-                </div>
-
-                {/* Sub-tabs: Chưa xong / Đã hoàn thành */}
-                {(() => {
-                  const today = new Date().toISOString().slice(0, 10);
-                  const pendingTodos = data.todos.filter(t => !t.done);
-                  const doneTodosLocal = data.todos.filter(t => t.done);
-                  return (
-                    <>
-                      <div style={{ display: "flex", gap: 6, marginBottom: 14, background: "#0f172a", borderRadius: 10, padding: 4 }}>
-                        {([
-                          { key: "pending", label: "📋 Cần làm", count: pendingTodos.length },
-                          { key: "done", label: "✅ Đã hoàn thành", count: doneTodosLocal.length },
-                        ] as const).map(({ key, label, count }) => (
-                          <button key={key} onClick={() => setTodoSubView(key)} style={{
-                            flex: 1, background: todoSubView === key ? "#1e293b" : "transparent",
-                            color: todoSubView === key ? "#f8fafc" : "#64748b",
-                            border: "none", borderRadius: 8, padding: "7px 12px",
-                            fontSize: 13, fontWeight: todoSubView === key ? 700 : 400,
-                            cursor: "pointer", display: "flex", alignItems: "center",
-                            justifyContent: "center", gap: 6, transition: "all 0.15s",
-                          }}>
-                            {label}
-                            <span style={{
-                              background: todoSubView === key
-                                ? (key === "done" ? "#10b981" : "#38bdf8")
-                                : "#334155",
-                              color: todoSubView === key ? "#0f172a" : "#94a3b8",
-                              borderRadius: 999, fontSize: 11, fontWeight: 700,
-                              padding: "1px 7px", minWidth: 20, textAlign: "center",
-                            }}>{count}</span>
-                          </button>
-                        ))}
-                      </div>
-
-                      {/* Tab Cần làm */}
-                      {todoSubView === "pending" && (
-                        <div>
-                          {["cao", "trung bình", "thấp"].map(p => {
-                            const items = pendingTodos.filter(t => t.priority === p);
-                            if (!items.length) return null;
-                            return (
-                              <div key={p} style={{ marginBottom: 16 }}>
-                                <div style={{ fontSize: 12, color: PRIORITY_COLOR[p], fontWeight: 700, marginBottom: 6, textTransform: "uppercase" as const, letterSpacing: 1 }}>
-                                  Ưu tiên {p}
-                                </div>
-                                {items.map(t => {
-                                  const isOverdue = t.date && t.date < today;
-                                  return (
-                                    <div key={t.id} style={{ background: "#1e293b", borderRadius: 10, padding: "10px 14px", marginBottom: 8, borderLeft: `3px solid ${isOverdue ? "#f43f5e" : PRIORITY_COLOR[p]}` }}>
-                                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                                        <input type="checkbox" checked={false}
-                                          onChange={() => setData(d => ({ ...d, todos: d.todos.map(x => x.id === t.id ? { ...x, done: true } : x) }))}
-                                          style={{ width: 16, height: 16, accentColor: PRIORITY_COLOR[p], cursor: "pointer", flexShrink: 0 }} />
-                                        <span style={{ flex: 1, color: "#e2e8f0" }}>{t.text}</span>
-                                        <button onClick={() => setData(d => ({ ...d, todos: d.todos.filter(x => x.id !== t.id) }))}
-                                          style={{ background: "none", border: "none", color: "#475569", cursor: "pointer" }}>✕</button>
-                                      </div>
-                                      {(t.date || isOverdue) && (
-                                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 5, paddingLeft: 26 }}>
-                                          {t.date && <span style={{ fontSize: 11, color: "#64748b" }}>📅 {t.date}</span>}
-                                          {isOverdue && <span style={{ fontSize: 11, color: "#f43f5e", fontWeight: 700 }}>⚠ Quá hạn</span>}
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            );
-                          })}
-                          {pendingTodos.length === 0 && (
-                            <div style={{ textAlign: "center", padding: "32px 0" }}>
-                              <div style={{ fontSize: 32, marginBottom: 8 }}>🎉</div>
-                              <div style={{ color: "#10b981", fontWeight: 700, fontSize: 15 }}>Tuyệt vời! Đã hoàn thành tất cả!</div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Tab Đã hoàn thành */}
-                      {todoSubView === "done" && (
-                        <div>
-                          {doneTodosLocal.length === 0 && <Empty text="Chưa hoàn thành việc nào hôm nay" />}
-                          {doneTodosLocal.length > 0 && (
-                            <>
-                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                                <span style={{ fontSize: 13, color: "#10b981", fontWeight: 600 }}>
-                                  ✅ {doneTodosLocal.length} việc đã xong
-                                </span>
-                              </div>
-                              {["cao", "trung bình", "thấp"].map(p => {
-                                const items = doneTodosLocal.filter(t => t.priority === p);
-                                if (!items.length) return null;
-                                return (
-                                  <div key={p} style={{ marginBottom: 16 }}>
-                                    <div style={{ fontSize: 12, color: PRIORITY_COLOR[p], fontWeight: 700, marginBottom: 6, textTransform: "uppercase" as const, letterSpacing: 1, opacity: 0.7 }}>
-                                      Ưu tiên {p}
-                                    </div>
-                                    {items.map(t => (
-                                      <div key={t.id} style={{ background: "#1e293b", borderRadius: 10, padding: "10px 14px", marginBottom: 8, borderLeft: `3px solid #10b981`, opacity: 0.75 }}>
-                                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                                          <input type="checkbox" checked={true}
-                                            onChange={() => setData(d => ({ ...d, todos: d.todos.map(x => x.id === t.id ? { ...x, done: false } : x) }))}
-                                            style={{ width: 16, height: 16, accentColor: "#10b981", cursor: "pointer", flexShrink: 0 }} />
-                                          <span style={{ flex: 1, textDecoration: "line-through", color: "#475569" }}>{t.text}</span>
-                                          <span style={{ fontSize: 11, color: "#10b981", fontWeight: 700 }}>✓ Xong</span>
-                                          <button onClick={() => setData(d => ({ ...d, todos: d.todos.filter(x => x.id !== t.id) }))}
-                                            style={{ background: "none", border: "none", color: "#334155", cursor: "pointer" }}>✕</button>
-                                        </div>
-                                        {t.date && (
-                                          <div style={{ marginTop: 5, paddingLeft: 26 }}>
-                                            <span style={{ fontSize: 11, color: "#64748b" }}>📅 {t.date}</span>
-                                          </div>
-                                        )}
-                                      </div>
-                                    ))}
-                                  </div>
-                                );
-                              })}
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
-              </div>
-            )}
-
-            {todoView === "history" && (
-              <div>
-                {(!data.todoHistory || data.todoHistory.length === 0) && (
-                  <Empty text="Chưa có lịch sử việc cần làm" />
-                )}
-                {[...(data.todoHistory || [])].sort((a, b) => b.date.localeCompare(a.date)).map(h => {
-                  const doneCount = h.items.filter(i => i.done).length;
-                  return (
-                    <div key={h.date} style={{ background: "#1e293b", borderRadius: 12, marginBottom: 12, overflow: "hidden", border: "1px solid #243347" }}>
-                      <div style={{ padding: "10px 14px", borderBottom: "1px solid #243347", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span style={{ fontWeight: 700, fontSize: 14, color: "#f8fafc" }}>📅 {h.date}</span>
-                        <span style={{ fontSize: 12, color: doneCount === h.items.length ? "#10b981" : "#f43f5e" }}>
-                          {doneCount}/{h.items.length} hoàn thành
-                        </span>
-                      </div>
-                      <div style={{ padding: "8px 14px" }}>
-                        {h.items.map(item => (
-                          <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0", borderBottom: "1px solid #1a2740" }}>
-                            <span style={{ fontSize: 13, width: 8, height: 8, borderRadius: "50%", background: PRIORITY_COLOR[item.priority], flexShrink: 0, display: "inline-block" }} />
-                            <span style={{ flex: 1, fontSize: 13, color: item.done ? "#475569" : "#e2e8f0", textDecoration: item.done ? "line-through" : "none" }}>{item.text}</span>
-                            {item.done
-                              ? <span style={{ fontSize: 11, color: "#10b981", fontWeight: 700 }}>✓ Xong</span>
-                              : <span style={{ fontSize: 11, color: "#f43f5e", fontWeight: 700 }}>✗ Chưa xong</span>
-                            }
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* TAB 2: Mục tiêu */}
-        {tab === 2 && (
-          <div>
-            <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-              <input value={newGoal} onChange={e => setNewGoal(e.target.value)}
-                placeholder="Mục tiêu của bạn..." style={{ ...inputStyle, flex: 1 }} />
-              <input type="date" value={newDeadline} onChange={e => setNewDeadline(e.target.value)} style={inputStyle} />
-              <button onClick={() => {
-                if (!newGoal.trim()) return;
-                setData(d => ({ ...d, goals: [...d.goals, { id: Date.now(), text: newGoal.trim(), deadline: newDeadline, done: false }] }));
-                setNewGoal(""); setNewDeadline("");
-              }} style={btnStyle}>+ Thêm</button>
-            </div>
-            {data.goals.map(g => {
-              const daysLeft = g.deadline ? Math.ceil((new Date(g.deadline) - new Date()) / 86400000) : null;
-              return (
-                <div key={g.id} style={{ background: "#1e293b", borderRadius: 12, padding: 16, marginBottom: 12, borderLeft: `3px solid ${g.done ? "#10b981" : "#38bdf8"}` }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                    <input type="checkbox" checked={g.done}
-                      onChange={() => setData(d => ({ ...d, goals: d.goals.map(x => x.id === g.id ? { ...x, done: !x.done } : x) }))}
-                      style={{ marginTop: 3, width: 16, height: 16, accentColor: "#10b981", cursor: "pointer" }} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, textDecoration: g.done ? "line-through" : "none", color: g.done ? "#475569" : "#f8fafc" }}>{g.text}</div>
-                      {g.deadline && (
-                        <div style={{ fontSize: 12, marginTop: 4, color: daysLeft < 0 ? "#f43f5e" : daysLeft < 7 ? "#facc15" : "#64748b" }}>
-                          📅 {g.deadline} {daysLeft !== null && `• ${daysLeft < 0 ? "Quá hạn!" : `Còn ${daysLeft} ngày`}`}
-                        </div>
-                      )}
-                    </div>
-                    <button onClick={() => setData(d => ({ ...d, goals: d.goals.filter(x => x.id !== g.id) }))}
-                      style={{ background: "none", border: "none", color: "#475569", cursor: "pointer" }}>✕</button>
+                {/* Items */}
+                {s.items.length===0&&<div style={{fontSize:13,color:"#475569",marginBottom:10}}>Chưa có bài học. Thêm bên dưới!</div>}
+                {s.items.map((item:any)=>(
+                  <div key={item.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:"1px solid #1a2735"}}>
+                    <input type="checkbox" checked={item.done}
+                      onChange={()=>setData((d:any)=>({...d,subjects:d.subjects.map((x:any)=>x.id===s.id?{...x,items:x.items.map((i:any)=>i.id===item.id?{...i,done:!i.done}:i)}:x)}))}
+                      style={{width:18,height:18,accentColor:s.color,cursor:"pointer",flexShrink:0}}/>
+                    <span style={{flex:1,fontSize:14,color:item.done?"#475569":"#e2e8f0",textDecoration:item.done?"line-through":"none"}}>{item.text}</span>
+                    <button onClick={()=>setData((d:any)=>({...d,subjects:d.subjects.map((x:any)=>x.id===s.id?{...x,items:x.items.filter((i:any)=>i.id!==item.id)}:x)}))}
+                      style={S.delBtn}>✕</button>
                   </div>
+                ))}
+
+                {/* Add item */}
+                <div style={{display:"flex",gap:8,marginTop:10}}>
+                  <input value={newItem[s.id]||""} onChange={e=>setNewItem(p=>({...p,[s.id]:e.target.value}))}
+                    onKeyDown={e=>{
+                      if(e.key==="Enter"&&(newItem[s.id]||"").trim()){
+                        setData((d:any)=>({...d,subjects:d.subjects.map((x:any)=>x.id===s.id?{...x,items:[...x.items,{id:Date.now(),text:newItem[s.id].trim(),done:false}]}:x)}));
+                        setNewItem(p=>({...p,[s.id]:""}));
+                      }
+                    }}
+                    placeholder="Thêm bài học..." style={{...S.input,fontSize:14,padding:"9px 12px"}}/>
+                  <button onClick={()=>{
+                    const v=(newItem[s.id]||"").trim();if(!v)return;
+                    setData((d:any)=>({...d,subjects:d.subjects.map((x:any)=>x.id===s.id?{...x,items:[...x.items,{id:Date.now(),text:v,done:false}]}:x)}));
+                    setNewItem(p=>({...p,[s.id]:""}));
+                  }} style={{...S.btn,padding:"9px 14px",fontSize:14}}>+</button>
                 </div>
-              );
-            })}
-            {data.goals.length === 0 && <Empty text="Chưa có mục tiêu nào" />}
-          </div>
-        )}
-
-        {/* TAB 3: Thời gian học */}
-        {tab === 3 && (
-          <div>
-            <div style={{ background: "#1e293b", borderRadius: 12, padding: 16, marginBottom: 16 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: "#94a3b8" }}>Ghi lại thời gian học hôm nay</div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <input type="date" value={studyDate} onChange={e => setStudyDate(e.target.value)} style={inputStyle} />
-                <input type="number" value={studyMinutes} onChange={e => setStudyMinutes(e.target.value)}
-                  placeholder="Số phút..." style={{ ...inputStyle, width: 100 }} />
-                <input value={studyNote} onChange={e => setStudyNote(e.target.value)}
-                  placeholder="Ghi chú..." style={{ ...inputStyle, flex: 1 }} />
-                <button onClick={() => {
-                  if (!studyMinutes || isNaN(+studyMinutes)) return;
-                  setData(d => ({ ...d, studyLog: [...d.studyLog, { id: Date.now(), date: studyDate, minutes: +studyMinutes, note: studyNote }] }));
-                  setStudyMinutes(""); setStudyNote("");
-                }} style={btnStyle}>+ Ghi</button>
               </div>
-            </div>
-
-            {/* Tổng kết */}
-            <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
-              <StatCard label="Tổng thời gian" value={`${Math.floor(totalStudyMinutes / 60)}h ${totalStudyMinutes % 60}m`} color="#38bdf8" />
-              <StatCard label="Số buổi học" value={data.studyLog.length} color="#a78bfa" />
-              <StatCard label="TB / buổi" value={data.studyLog.length ? `${Math.round(totalStudyMinutes / data.studyLog.length)}m` : "—"} color="#34d399" />
-            </div>
-
-            {/* Log */}
-            {[...data.studyLog].reverse().map(l => (
-              <div key={l.id} style={{ background: "#1e293b", borderRadius: 10, padding: "10px 14px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div>
-                  <span style={{ color: "#38bdf8", fontWeight: 700 }}>⏱ {l.minutes} phút</span>
-                  <span style={{ fontSize: 12, color: "#64748b", marginLeft: 8 }}>{l.date}</span>
-                  {l.note && <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>{l.note}</div>}
-                </div>
-                <button onClick={() => setData(d => ({ ...d, studyLog: d.studyLog.filter(x => x.id !== l.id) }))}
-                  style={{ background: "none", border: "none", color: "#475569", cursor: "pointer" }}>✕</button>
-              </div>
-            ))}
-            {data.studyLog.length === 0 && <Empty text="Chưa có buổi học nào được ghi lại" />}
+            )}
           </div>
-        )}
+        );
+      })}
+    </div>
+  );
+}
 
-        {/* TAB 4: Soạn bài */}
-        {tab === 4 && (
-          <div>
-            <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-              <input value={newLessonSubject} onChange={e => setNewLessonSubject(e.target.value)}
-                placeholder="Môn..." style={{ ...inputStyle, width: 100 }} />
-              <input value={newLesson} onChange={e => setNewLesson(e.target.value)}
-                placeholder="Tên bài soạn..." style={{ ...inputStyle, flex: 1 }} />
-              <select value={newLessonStatus} onChange={e => setNewLessonStatus(e.target.value)} style={selectStyle}>
-                <option value="chưa soạn">Chưa soạn</option>
-                <option value="đang soạn">Đang soạn</option>
-                <option value="hoàn thành">Hoàn thành</option>
+// ══════════════════════════════════════════════════════════════
+// TAB 1 — VIỆC CẦN LÀM
+// ══════════════════════════════════════════════════════════════
+function TabTodos({data,setData,todayStr}:any) {
+  const [view,setView]=useState<"today"|"history">("today");
+  const [subView,setSubView]=useState<"pending"|"done">("pending");
+  const [text,setText]=useState("");
+  const [priority,setPriority]=useState("trung bình");
+  const [date,setDate]=useState(todayStr);
+
+  const pending=data.todos.filter((t:any)=>!t.done);
+  const done=data.todos.filter((t:any)=>t.done);
+
+  const add=()=>{
+    if(!text.trim())return;
+    setData((d:any)=>({...d,todos:[...d.todos,{id:Date.now(),text:text.trim(),done:false,priority,date}]}));
+    setText("");
+  };
+
+  return (
+    <div>
+      {/* View toggle */}
+      <div style={{display:"flex",gap:8,marginBottom:14}}>
+        {(["today","history"] as const).map(v=>(
+          <button key={v} onClick={()=>setView(v)} style={{
+            flex:1,background:view===v?"#38bdf8":"#111827",
+            color:view===v?"#0a0f1e":"#64748b",
+            border:`1px solid ${view===v?"#38bdf8":"#1f2d44"}`,
+            borderRadius:10,padding:"10px",fontSize:14,fontWeight:view===v?700:500,cursor:"pointer",
+          }}>{v==="today"?"📋 Hôm nay":"🗂️ Lịch sử"}</button>
+        ))}
+      </div>
+
+      {view==="today"&&(
+        <div>
+          {/* Add form */}
+          <div style={{...S.card,padding:14,marginBottom:14}}>
+            <input value={text} onChange={e=>setText(e.target.value)} placeholder="Thêm việc cần làm..."
+              onKeyDown={e=>e.key==="Enter"&&add()} style={{...S.input,marginBottom:10}}/>
+            <div style={{display:"flex",gap:8}}>
+              <input type="date" value={date} onChange={e=>setDate(e.target.value)}
+                style={{...S.input,flex:1,fontSize:14,padding:"9px 10px"}}/>
+              <select value={priority} onChange={e=>setPriority(e.target.value)}
+                style={{...S.select,flex:1,fontSize:14,padding:"9px 10px"}}>
+                <option value="cao">🔴 Cao</option>
+                <option value="trung bình">🟡 TB</option>
+                <option value="thấp">🟢 Thấp</option>
               </select>
-              <button onClick={() => {
-                if (!newLesson.trim()) return;
-                setData(d => ({ ...d, lessons: [...d.lessons, { id: Date.now(), subject: newLessonSubject, lesson: newLesson.trim(), status: newLessonStatus }] }));
-                setNewLesson(""); setNewLessonSubject("");
-              }} style={btnStyle}>+ Thêm</button>
+              <button onClick={add} style={{...S.btn,padding:"9px 16px",fontSize:14}}>+</button>
             </div>
-
-            {/* Progress bar tổng */}
-            <div style={{ background: "#1e293b", borderRadius: 10, padding: 12, marginBottom: 16 }}>
-              <div style={{ fontSize: 13, color: "#94a3b8", marginBottom: 6 }}>Tiến trình soạn bài: <b style={{ color: "#10b981" }}>{doneLessons}/{data.lessons.length}</b></div>
-              <div style={{ background: "#0f172a", borderRadius: 999, height: 8 }}>
-                <div style={{ width: data.lessons.length ? `${(doneLessons / data.lessons.length) * 100}%` : "0%", height: "100%", background: "#10b981", borderRadius: 999, transition: "width 0.4s" }} />
-              </div>
-            </div>
-
-            {data.lessons.map(l => (
-              <div key={l.id} style={{ background: "#1e293b", borderRadius: 10, padding: "12px 14px", marginBottom: 8, display: "flex", alignItems: "center", gap: 10, borderLeft: `3px solid ${STATUS_COLOR[l.status]}` }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, color: "#f8fafc" }}>{l.lesson}</div>
-                  {l.subject && <div style={{ fontSize: 12, color: "#64748b" }}>📚 {l.subject}</div>}
-                </div>
-                <select value={l.status} onChange={e => setData(d => ({ ...d, lessons: d.lessons.map(x => x.id === l.id ? { ...x, status: e.target.value } : x) }))}
-                  style={{ ...selectStyle, fontSize: 12, padding: "4px 8px" }}>
-                  <option value="chưa soạn">Chưa soạn</option>
-                  <option value="đang soạn">Đang soạn</option>
-                  <option value="hoàn thành">Hoàn thành</option>
-                </select>
-                <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: STATUS_COLOR[l.status] + "33", color: STATUS_COLOR[l.status], fontWeight: 700 }}>
-                  {l.status}
-                </span>
-                <button onClick={() => setData(d => ({ ...d, lessons: d.lessons.filter(x => x.id !== l.id) }))}
-                  style={{ background: "none", border: "none", color: "#475569", cursor: "pointer" }}>✕</button>
-              </div>
-            ))}
-            {data.lessons.length === 0 && <Empty text="Chưa có bài soạn nào" />}
           </div>
-        )}
 
-        {/* TAB 5: Chi tiêu */}
-        {tab === 5 && (() => {
-          const totalIncome = data.finance.income.reduce((a, b) => a + (Number(b.amount) || 0), 0);
-          const totalDebt = data.finance.debt.reduce((a, b) => a + (Number(b.amount) || 0), 0);
-          const paidDebt = data.finance.debt.filter(d => d.paid).reduce((a, b) => a + (Number(b.amount) || 0), 0);
-          const totalExpenses = data.finance.expenses.reduce((a, b) => a + (Number(b.amount) || 0), 0);
-          const totalOutings = data.finance.outings.reduce((a, b) => a + (Number(b.amount) || 0), 0);
-          const remaining = totalIncome - totalDebt - totalExpenses - totalOutings;
-          const fmt = n => n.toLocaleString("vi-VN") + "đ";
+          {/* Sub tabs */}
+          <div style={{display:"flex",gap:6,background:"#0d1829",borderRadius:12,padding:4,marginBottom:14}}>
+            {([{k:"pending",lbl:"📋 Cần làm",cnt:pending.length},{k:"done",lbl:"✅ Hoàn thành",cnt:done.length}] as const).map(({k,lbl,cnt})=>(
+              <button key={k} onClick={()=>setSubView(k as any)} style={{
+                flex:1,background:subView===k?"#111827":"transparent",
+                color:subView===k?"#f8fafc":"#64748b",
+                border:"none",borderRadius:10,padding:"9px 12px",
+                fontSize:13,fontWeight:subView===k?700:500,cursor:"pointer",
+                display:"flex",alignItems:"center",justifyContent:"center",gap:6,
+              }}>
+                {lbl}
+                <span style={{
+                  background:subView===k?(k==="done"?"#10b981":"#38bdf8"):"#1f2d44",
+                  color:subView===k?"#0a0f1e":"#64748b",
+                  borderRadius:999,fontSize:11,fontWeight:700,padding:"1px 7px",
+                }}>{cnt}</span>
+              </button>
+            ))}
+          </div>
 
-          const updateFinance = (key, val) => setData(d => ({ ...d, finance: { ...d.finance, [key]: val } }));
-
-          return (
+          {subView==="pending"&&(
             <div>
-              {/* Chọn tháng */}
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-                <span style={{ fontSize: 13, color: "#94a3b8" }}>Tháng:</span>
-                <input type="month" value={data.finance.month}
-                  onChange={e => updateFinance("month", e.target.value)}
-                  style={{ ...inputStyle, fontSize: 14 }} />
-              </div>
-
-              {/* Tổng quan */}
-              <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
-                <SummaryCard label="Tổng lương" value={fmt(totalIncome)} color="#10b981" icon="💵" />
-                <SummaryCard label="Tổng nợ" value={fmt(totalDebt)} color="#f43f5e" icon="💳" />
-                <SummaryCard label="Chi phí" value={fmt(totalExpenses)} color="#f97316" icon="🧾" />
-                <SummaryCard label="Còn lại" value={fmt(remaining)} color={remaining >= 0 ? "#38bdf8" : "#f43f5e"} icon="🏦" />
-              </div>
-
-              {/* LƯƠNG */}
-              <Section title="💵 Tổng lương" total={fmt(totalIncome)} color="#10b981">
-                {data.finance.income.map(item => (
-                  <div key={item.id} style={finRowStyle}>
-                    <span style={{ flex: 1, fontSize: 14, color: "#e2e8f0" }}>{item.label}</span>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <input
-                        type="number" value={item.amount || ""}
-                        onChange={e => updateFinance("income", data.finance.income.map(x => x.id === item.id ? { ...x, amount: e.target.value } : x))}
-                        placeholder="0"
-                        style={{ ...inputStyle, width: 120, padding: "4px 8px", fontSize: 13, textAlign: "right" }} />
-                      <span style={{ fontSize: 12, color: "#475569" }}>đ</span>
-                      <button onClick={() => updateFinance("income", data.finance.income.filter(x => x.id !== item.id))}
-                        style={delBtn}>✕</button>
-                    </div>
+              {["cao","trung bình","thấp"].map(p=>{
+                const items=pending.filter((t:any)=>t.priority===p);
+                if(!items.length) return null;
+                return (
+                  <div key={p} style={{marginBottom:14}}>
+                    <div style={{fontSize:11,color:PRIORITY_COLOR[p],fontWeight:700,marginBottom:8,
+                      textTransform:"uppercase",letterSpacing:1}}>Ưu tiên {p}</div>
+                    {items.map((t:any)=>{
+                      const over=t.date&&t.date<todayStr;
+                      return (
+                        <div key={t.id} style={{...S.card,borderLeft:`3px solid ${over?"#f43f5e":PRIORITY_COLOR[p]}`}}>
+                          <div style={{padding:"11px 14px"}}>
+                            <div style={{display:"flex",alignItems:"center",gap:10}}>
+                              <input type="checkbox" checked={false}
+                                onChange={()=>setData((d:any)=>({...d,todos:d.todos.map((x:any)=>x.id===t.id?{...x,done:true}:x)}))}
+                                style={{width:20,height:20,accentColor:PRIORITY_COLOR[p],cursor:"pointer",flexShrink:0}}/>
+                              <span style={{flex:1,color:"#e2e8f0",fontSize:15}}>{t.text}</span>
+                              <button onClick={()=>setData((d:any)=>({...d,todos:d.todos.filter((x:any)=>x.id!==t.id)}))}
+                                style={S.delBtn}>✕</button>
+                            </div>
+                            {(t.date||over)&&(
+                              <div style={{display:"flex",gap:8,marginTop:5,paddingLeft:30}}>
+                                {t.date&&<span style={{fontSize:11,color:"#64748b"}}>📅 {t.date}</span>}
+                                {over&&<span style={{fontSize:11,color:"#f43f5e",fontWeight:700}}>⚠ Quá hạn</span>}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                ))}
-                {/* Thêm mục lương */}
-                <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                  <input value={newIncomeLabel} onChange={e => setNewIncomeLabel(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === "Enter" && newIncomeLabel.trim()) {
-                        updateFinance("income", [...data.finance.income, { id: Date.now(), label: newIncomeLabel.trim(), amount: 0 }]);
-                        setNewIncomeLabel("");
-                      }
-                    }}
-                    placeholder="Tên nguồn thu..." style={{ ...inputStyle, flex: 1, fontSize: 13, padding: "6px 10px" }} />
-                  <button onClick={() => {
-                    if (!newIncomeLabel.trim()) return;
-                    updateFinance("income", [...data.finance.income, { id: Date.now(), label: newIncomeLabel.trim(), amount: 0 }]);
-                    setNewIncomeLabel("");
-                  }} style={{ ...btnStyle, padding: "6px 12px", fontSize: 13, background: "#10b981" }}>+ Thêm</button>
+                );
+              })}
+              {!pending.length&&(
+                <div style={{textAlign:"center",padding:"40px 0"}}>
+                  <div style={{fontSize:36,marginBottom:8}}>🎉</div>
+                  <div style={{color:"#10b981",fontWeight:700,fontSize:15}}>Tuyệt! Đã xong tất cả!</div>
                 </div>
-              </Section>
-
-              {/* NỢ */}
-              <Section title="💳 Tổng nợ cần trả" total={fmt(totalDebt)} color="#f43f5e">
-                {data.finance.debt.map(item => (
-                  <div key={item.id} style={{ ...finRowStyle, opacity: item.paid ? 0.5 : 1 }}>
-                    <input type="checkbox" checked={item.paid}
-                      onChange={() => updateFinance("debt", data.finance.debt.map(x => x.id === item.id ? { ...x, paid: !x.paid } : x))}
-                      style={{ width: 15, height: 15, accentColor: "#10b981", cursor: "pointer", flexShrink: 0 }} />
-                    <span style={{ flex: 1, fontSize: 14, color: item.paid ? "#475569" : "#e2e8f0", textDecoration: item.paid ? "line-through" : "none" }}>
-                      {item.label}
-                    </span>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <input
-                        type="number" value={item.amount || ""}
-                        onChange={e => updateFinance("debt", data.finance.debt.map(x => x.id === item.id ? { ...x, amount: e.target.value } : x))}
-                        placeholder="0"
-                        style={{ ...inputStyle, width: 120, padding: "4px 8px", fontSize: 13, textAlign: "right" }} />
-                      <span style={{ fontSize: 12, color: "#475569" }}>đ</span>
-                      <button onClick={() => updateFinance("debt", data.finance.debt.filter(x => x.id !== item.id))}
-                        style={delBtn}>✕</button>
-                    </div>
-                  </div>
-                ))}
-                {/* Thêm mục nợ */}
-                <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                  <input value={newDebtLabel} onChange={e => setNewDebtLabel(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === "Enter" && newDebtLabel.trim()) {
-                        updateFinance("debt", [...data.finance.debt, { id: Date.now(), label: newDebtLabel.trim(), amount: 0, paid: false }]);
-                        setNewDebtLabel("");
-                      }
-                    }}
-                    placeholder="Tên khoản nợ..." style={{ ...inputStyle, flex: 1, fontSize: 13, padding: "6px 10px" }} />
-                  <button onClick={() => {
-                    if (!newDebtLabel.trim()) return;
-                    updateFinance("debt", [...data.finance.debt, { id: Date.now(), label: newDebtLabel.trim(), amount: 0, paid: false }]);
-                    setNewDebtLabel("");
-                  }} style={{ ...btnStyle, padding: "6px 12px", fontSize: 13, background: "#f43f5e" }}>+ Thêm</button>
-                </div>
-              </Section>
-
-              {/* CHI PHÍ CỐ ĐỊNH */}
-              <Section title="🧾 Chi phí cố định" total={fmt(totalExpenses)} color="#f97316">
-                {data.finance.expenses.map(item => {
-                  const amt = Number(item.amount) || 0;
-                  const belowMin = item.min && amt < item.min;
-                  return (
-                    <div key={item.id} style={finRowStyle}>
-                      <div style={{ flex: 1 }}>
-                        <span style={{ fontSize: 14, color: "#e2e8f0" }}>{item.label}</span>
-                        {item.min > 0 && (
-                          <span style={{ fontSize: 11, marginLeft: 8, color: belowMin ? "#f43f5e" : "#10b981", fontWeight: 600 }}>
-                            {belowMin ? `⚠ tối thiểu ${item.min.toLocaleString("vi-VN")}đ` : "✓ đủ"}
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <input
-                          type="number" value={item.amount || ""}
-                          onChange={e => updateFinance("expenses", data.finance.expenses.map(x => x.id === item.id ? { ...x, amount: e.target.value } : x))}
-                          placeholder="0"
-                          style={{ ...inputStyle, width: 120, padding: "4px 8px", fontSize: 13, textAlign: "right", borderColor: belowMin ? "#f43f5e" : "#334155" }} />
-                        <span style={{ fontSize: 12, color: "#475569" }}>đ</span>
-                        <button onClick={() => updateFinance("expenses", data.finance.expenses.filter(x => x.id !== item.id))}
-                          style={delBtn}>✕</button>
-                      </div>
-                    </div>
-                  );
-                })}
-                {/* Thêm mục chi phí */}
-                <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
-                  <input value={newExpenseLabel} onChange={e => setNewExpenseLabel(e.target.value)}
-                    placeholder="Tên chi phí..." style={{ ...inputStyle, flex: 1, minWidth: 120, fontSize: 13, padding: "6px 10px" }} />
-                  <input type="number" value={newExpenseMin} onChange={e => setNewExpenseMin(e.target.value)}
-                    placeholder="Tối thiểu (đ)..." style={{ ...inputStyle, width: 130, fontSize: 13, padding: "6px 10px" }} />
-                  <button onClick={() => {
-                    if (!newExpenseLabel.trim()) return;
-                    updateFinance("expenses", [...data.finance.expenses, { id: Date.now(), label: newExpenseLabel.trim(), amount: 0, min: Number(newExpenseMin) || 0 }]);
-                    setNewExpenseLabel(""); setNewExpenseMin("");
-                  }} style={{ ...btnStyle, padding: "6px 12px", fontSize: 13, background: "#f97316" }}>+ Thêm</button>
-                </div>
-              </Section>
-
-              {/* ĐI CHƠI */}
-              <Section title="🎉 Đi chơi" total={fmt(totalOutings)} color="#a78bfa">
-                {/* Form thêm */}
-                <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
-                  <input type="date" value={newOutingDate} onChange={e => setNewOutingDate(e.target.value)}
-                    style={{ ...inputStyle, fontSize: 13, padding: "6px 10px" }} />
-                  <input value={newOutingNote} onChange={e => setNewOutingNote(e.target.value)}
-                    placeholder="Ghi chú (đi đâu, làm gì...)"
-                    onKeyDown={e => {
-                      if (e.key === "Enter" && newOutingAmount) {
-                        updateFinance("outings", [...data.finance.outings, { id: Date.now(), date: newOutingDate, note: newOutingNote.trim(), amount: Number(newOutingAmount) }]);
-                        setNewOutingNote(""); setNewOutingAmount("");
-                      }
-                    }}
-                    style={{ ...inputStyle, flex: 1, minWidth: 140, fontSize: 13, padding: "6px 10px" }} />
-                  <input type="number" value={newOutingAmount} onChange={e => setNewOutingAmount(e.target.value)}
-                    placeholder="Số tiền..."
-                    style={{ ...inputStyle, width: 110, fontSize: 13, padding: "6px 10px" }} />
-                  <button onClick={() => {
-                    if (!newOutingAmount) return;
-                    updateFinance("outings", [...data.finance.outings, { id: Date.now(), date: newOutingDate, note: newOutingNote.trim(), amount: Number(newOutingAmount) }]);
-                    setNewOutingNote(""); setNewOutingAmount("");
-                  }} style={{ ...btnStyle, padding: "6px 12px", fontSize: 13, background: "#a78bfa", color: "#fff" }}>+ Thêm</button>
-                </div>
-
-                {/* Danh sách */}
-                {data.finance.outings.length === 0 && (
-                  <div style={{ fontSize: 13, color: "#475569", textAlign: "center", padding: "12px 0" }}>Chưa có lần đi chơi nào 🎈</div>
-                )}
-                {[...data.finance.outings].sort((a, b) => b.date.localeCompare(a.date)).map(o => (
-                  <div key={o.id} style={{ ...finRowStyle, alignItems: "center" }}>
-                    <span style={{ fontSize: 12, color: "#64748b", minWidth: 86, flexShrink: 0 }}>📅 {o.date}</span>
-                    <span style={{ flex: 1, fontSize: 14, color: "#e2e8f0" }}>{o.note || <span style={{ color: "#475569", fontStyle: "italic" }}>Không có ghi chú</span>}</span>
-                    <span style={{ fontWeight: 700, color: "#a78bfa", fontSize: 14, minWidth: 90, textAlign: "right" }}>
-                      {Number(o.amount).toLocaleString("vi-VN")}đ
-                    </span>
-                    <button onClick={() => updateFinance("outings", data.finance.outings.filter(x => x.id !== o.id))}
-                      style={delBtn}>✕</button>
-                  </div>
-                ))}
-
-                {/* Tổng cuối */}
-                {data.finance.outings.length > 0 && (
-                  <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10, paddingTop: 8, borderTop: "1px solid #243347" }}>
-                    <span style={{ fontSize: 13, color: "#94a3b8", marginRight: 8 }}>Tổng đi chơi tháng này:</span>
-                    <span style={{ fontWeight: 700, color: "#a78bfa" }}>{fmt(totalOutings)}</span>
-                  </div>
-                )}
-              </Section>
+              )}
             </div>
+          )}
+
+          {subView==="done"&&(
+            <div>
+              {!done.length&&<Empty text="Chưa hoàn thành việc nào hôm nay"/>}
+              {["cao","trung bình","thấp"].map(p=>{
+                const items=done.filter((t:any)=>t.priority===p);
+                if(!items.length) return null;
+                return (
+                  <div key={p} style={{marginBottom:14}}>
+                    <div style={{fontSize:11,color:PRIORITY_COLOR[p],fontWeight:700,marginBottom:8,
+                      textTransform:"uppercase",letterSpacing:1,opacity:0.7}}>Ưu tiên {p}</div>
+                    {items.map((t:any)=>(
+                      <div key={t.id} style={{...S.card,borderLeft:"3px solid #10b981",opacity:0.75}}>
+                        <div style={{padding:"11px 14px",display:"flex",alignItems:"center",gap:10}}>
+                          <input type="checkbox" checked={true}
+                            onChange={()=>setData((d:any)=>({...d,todos:d.todos.map((x:any)=>x.id===t.id?{...x,done:false}:x)}))}
+                            style={{width:20,height:20,accentColor:"#10b981",cursor:"pointer",flexShrink:0}}/>
+                          <span style={{flex:1,textDecoration:"line-through",color:"#475569",fontSize:15}}>{t.text}</span>
+                          <span style={{fontSize:11,color:"#10b981",fontWeight:700}}>✓</span>
+                          <button onClick={()=>setData((d:any)=>({...d,todos:d.todos.filter((x:any)=>x.id!==t.id)}))}
+                            style={S.delBtn}>✕</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {view==="history"&&(
+        <div>
+          {(!data.todoHistory||!data.todoHistory.length)&&<Empty text="Chưa có lịch sử"/>}
+          {[...(data.todoHistory||[])].sort((a:any,b:any)=>b.date.localeCompare(a.date)).map((h:any)=>{
+            const dc=h.items.filter((i:any)=>i.done).length;
+            return (
+              <div key={h.date} style={S.card}>
+                <div style={{padding:"11px 14px",borderBottom:"1px solid #1f2d44",display:"flex",justifyContent:"space-between"}}>
+                  <span style={{fontWeight:700,fontSize:14,color:"#f8fafc"}}>📅 {h.date}</span>
+                  <span style={{fontSize:12,color:dc===h.items.length?"#10b981":"#f43f5e"}}>{dc}/{h.items.length} xong</span>
+                </div>
+                <div style={{padding:"8px 14px"}}>
+                  {h.items.map((item:any)=>(
+                    <div key={item.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 0",borderBottom:"1px solid #1a2735"}}>
+                      <span style={{width:8,height:8,borderRadius:"50%",background:PRIORITY_COLOR[item.priority],flexShrink:0,display:"inline-block"}}/>
+                      <span style={{flex:1,fontSize:14,color:item.done?"#475569":"#e2e8f0",textDecoration:item.done?"line-through":"none"}}>{item.text}</span>
+                      {item.done?<span style={{fontSize:11,color:"#10b981",fontWeight:700}}>✓</span>:<span style={{fontSize:11,color:"#f43f5e",fontWeight:700}}>✗</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// TAB 2 — MỤC TIÊU
+// ══════════════════════════════════════════════════════════════
+function TabGoals({data,setData}:any) {
+  const [text,setText]=useState("");
+  const [deadline,setDeadline]=useState("");
+  const add=()=>{
+    if(!text.trim())return;
+    setData((d:any)=>({...d,goals:[...d.goals,{id:Date.now(),text:text.trim(),deadline,done:false}]}));
+    setText("");setDeadline("");
+  };
+  return (
+    <div>
+      <div style={{...S.card,padding:14,marginBottom:14}}>
+        <input value={text} onChange={e=>setText(e.target.value)} placeholder="Mục tiêu của bạn..."
+          onKeyDown={e=>e.key==="Enter"&&add()} style={{...S.input,marginBottom:10}}/>
+        <div style={{display:"flex",gap:8}}>
+          <input type="date" value={deadline} onChange={e=>setDeadline(e.target.value)}
+            style={{...S.input,flex:1,fontSize:14,padding:"9px 10px"}}/>
+          <button onClick={add} style={{...S.btn,padding:"9px 16px"}}>+ Thêm</button>
+        </div>
+      </div>
+      {data.goals.length===0&&<Empty text="Chưa có mục tiêu nào"/>}
+      {data.goals.map((g:any)=>{
+        const dl=g.deadline?Math.ceil((new Date(g.deadline).getTime()-Date.now())/86400000):null;
+        return (
+          <div key={g.id} style={{...S.card,borderLeft:`3px solid ${g.done?"#10b981":"#38bdf8"}`}}>
+            <div style={{padding:"12px 14px",display:"flex",alignItems:"flex-start",gap:10}}>
+              <input type="checkbox" checked={g.done}
+                onChange={()=>setData((d:any)=>({...d,goals:d.goals.map((x:any)=>x.id===g.id?{...x,done:!x.done}:x)}))}
+                style={{marginTop:2,width:20,height:20,accentColor:"#10b981",cursor:"pointer",flexShrink:0}}/>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:600,fontSize:15,textDecoration:g.done?"line-through":"none",color:g.done?"#475569":"#f8fafc"}}>{g.text}</div>
+                {g.deadline&&(
+                  <div style={{fontSize:12,marginTop:4,color:dl!==null&&dl<0?"#f43f5e":dl!==null&&dl<7?"#facc15":"#64748b"}}>
+                    📅 {g.deadline} {dl!==null&&`• ${dl<0?"Quá hạn!":dl===0?"Hôm nay!":"Còn "+dl+" ngày"}`}
+                  </div>
+                )}
+              </div>
+              <button onClick={()=>setData((d:any)=>({...d,goals:d.goals.filter((x:any)=>x.id!==g.id)}))}
+                style={S.delBtn}>✕</button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// TAB 3 — THỜI GIAN HỌC
+// ══════════════════════════════════════════════════════════════
+function TabStudy({data,setData,totalMin}:any) {
+  const [date,setDate]=useState(new Date().toISOString().slice(0,10));
+  const [minutes,setMinutes]=useState("");
+  const [note,setNote]=useState("");
+  const add=()=>{
+    if(!minutes||isNaN(+minutes))return;
+    setData((d:any)=>({...d,studyLog:[...d.studyLog,{id:Date.now(),date,minutes:+minutes,note}]}));
+    setMinutes("");setNote("");
+  };
+  return (
+    <div>
+      <div style={{...S.card,padding:14,marginBottom:14}}>
+        <div style={{fontSize:13,color:"#94a3b8",marginBottom:10,fontWeight:600}}>📝 Ghi thời gian học</div>
+        <div style={{display:"flex",gap:8,marginBottom:10}}>
+          <input type="date" value={date} onChange={e=>setDate(e.target.value)}
+            style={{...S.input,flex:1,fontSize:14,padding:"9px 10px"}}/>
+          <input type="number" value={minutes} onChange={e=>setMinutes(e.target.value)} placeholder="Phút"
+            style={{...S.input,width:80,fontSize:14,padding:"9px 10px"}}/>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <input value={note} onChange={e=>setNote(e.target.value)} placeholder="Ghi chú..."
+            onKeyDown={e=>e.key==="Enter"&&add()} style={{...S.input,flex:1,fontSize:14,padding:"9px 10px"}}/>
+          <button onClick={add} style={{...S.btn,padding:"9px 16px"}}>+ Ghi</button>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div style={{display:"flex",gap:10,marginBottom:14}}>
+        {[
+          {lbl:"Tổng thời gian",val:`${Math.floor(totalMin/60)}h ${totalMin%60}m`,color:"#38bdf8"},
+          {lbl:"Số buổi",val:data.studyLog.length,color:"#a78bfa"},
+          {lbl:"TB/buổi",val:data.studyLog.length?`${Math.round(totalMin/data.studyLog.length)}m`:"—",color:"#34d399"},
+        ].map(s=>(
+          <div key={s.lbl} style={{flex:1,...S.card,padding:"12px 10px",textAlign:"center",marginBottom:0}}>
+            <div style={{fontSize:16,fontWeight:800,color:s.color}}>{s.val}</div>
+            <div style={{fontSize:11,color:"#64748b",marginTop:2}}>{s.lbl}</div>
+          </div>
+        ))}
+      </div>
+
+      {data.studyLog.length===0&&<Empty text="Chưa có buổi học nào"/>}
+      {[...data.studyLog].reverse().map((l:any)=>(
+        <div key={l.id} style={{...S.card}}>
+          <div style={{padding:"11px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div>
+              <span style={{color:"#38bdf8",fontWeight:700,fontSize:15}}>⏱ {l.minutes} phút</span>
+              <span style={{fontSize:12,color:"#64748b",marginLeft:8}}>{l.date}</span>
+              {l.note&&<div style={{fontSize:13,color:"#94a3b8",marginTop:3}}>{l.note}</div>}
+            </div>
+            <button onClick={()=>setData((d:any)=>({...d,studyLog:d.studyLog.filter((x:any)=>x.id!==l.id)}))}
+              style={S.delBtn}>✕</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// TAB 4 — SOẠN BÀI
+// ══════════════════════════════════════════════════════════════
+function TabLessons({data,setData,doneLessons}:any) {
+  const [lesson,setLesson]=useState("");
+  const [subject,setSubject]=useState("");
+  const [status,setStatus]=useState("chưa soạn");
+  const add=()=>{
+    if(!lesson.trim())return;
+    setData((d:any)=>({...d,lessons:[...d.lessons,{id:Date.now(),subject,lesson:lesson.trim(),status}]}));
+    setLesson("");setSubject("");
+  };
+  return (
+    <div>
+      <div style={{...S.card,padding:14,marginBottom:14}}>
+        <div style={{display:"flex",gap:8,marginBottom:10}}>
+          <input value={subject} onChange={e=>setSubject(e.target.value)} placeholder="Môn..."
+            style={{...S.input,width:90,fontSize:14,padding:"9px 10px"}}/>
+          <input value={lesson} onChange={e=>setLesson(e.target.value)} placeholder="Tên bài soạn..."
+            onKeyDown={e=>e.key==="Enter"&&add()} style={{...S.input,flex:1,fontSize:14,padding:"9px 10px"}}/>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <select value={status} onChange={e=>setStatus(e.target.value)}
+            style={{...S.select,flex:1,fontSize:14,padding:"9px 10px"}}>
+            <option value="chưa soạn">Chưa soạn</option>
+            <option value="đang soạn">Đang soạn</option>
+            <option value="hoàn thành">Hoàn thành</option>
+          </select>
+          <button onClick={add} style={{...S.btn,padding:"9px 16px"}}>+ Thêm</button>
+        </div>
+      </div>
+
+      {/* Progress */}
+      <div style={{...S.card,padding:"12px 14px",marginBottom:14}}>
+        <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>
+          Tiến trình: <b style={{color:"#10b981"}}>{doneLessons}/{data.lessons.length}</b>
+        </div>
+        <div style={{background:"#0d1829",borderRadius:999,height:7}}>
+          <div style={{
+            width:data.lessons.length?`${doneLessons/data.lessons.length*100}%`:"0%",
+            height:"100%",background:"#10b981",borderRadius:999,transition:"width 0.4s"
+          }}/>
+        </div>
+      </div>
+
+      {data.lessons.length===0&&<Empty text="Chưa có bài soạn nào"/>}
+      {data.lessons.map((l:any)=>(
+        <div key={l.id} style={{...S.card,borderLeft:`3px solid ${STATUS_COLOR[l.status]}`}}>
+          <div style={{padding:"11px 14px",display:"flex",alignItems:"center",gap:10}}>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontWeight:600,fontSize:14,color:"#f8fafc",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{l.lesson}</div>
+              {l.subject&&<div style={{fontSize:12,color:"#64748b",marginTop:2}}>📚 {l.subject}</div>}
+            </div>
+            <select value={l.status} onChange={e=>setData((d:any)=>({...d,lessons:d.lessons.map((x:any)=>x.id===l.id?{...x,status:e.target.value}:x)}))}
+              style={{...S.select,fontSize:12,padding:"5px 8px",flexShrink:0}}>
+              <option value="chưa soạn">Chưa soạn</option>
+              <option value="đang soạn">Đang soạn</option>
+              <option value="hoàn thành">Hoàn thành</option>
+            </select>
+            <span style={{fontSize:10,padding:"3px 8px",borderRadius:999,background:STATUS_COLOR[l.status]+"33",
+              color:STATUS_COLOR[l.status],fontWeight:700,flexShrink:0,whiteSpace:"nowrap"}}>{l.status}</span>
+            <button onClick={()=>setData((d:any)=>({...d,lessons:d.lessons.filter((x:any)=>x.id!==l.id)}))}
+              style={S.delBtn}>✕</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// TAB 5 — CHI TIÊU
+// ══════════════════════════════════════════════════════════════
+function TabFinance({data,setData}:any) {
+  const [newIncome,setNewIncome]=useState("");
+  const [newDebt,setNewDebt]=useState("");
+  const [newExp,setNewExp]=useState("");
+  const [newExpMin,setNewExpMin]=useState("");
+  const [outDate,setOutDate]=useState(new Date().toISOString().slice(0,10));
+  const [outNote,setOutNote]=useState("");
+  const [outAmt,setOutAmt]=useState("");
+
+  const upd=(key:string,val:any)=>setData((d:any)=>({...d,finance:{...d.finance,[key]:val}}));
+  const fmt=(n:number)=>n.toLocaleString("vi-VN")+"đ";
+
+  const totalIncome=data.finance.income.reduce((a:number,b:any)=>a+(+b.amount||0),0);
+  const totalDebt=data.finance.debt.reduce((a:number,b:any)=>a+(+b.amount||0),0);
+  const totalExp=data.finance.expenses.reduce((a:number,b:any)=>a+(+b.amount||0),0);
+  const totalOut=data.finance.outings.reduce((a:number,b:any)=>a+(+b.amount||0),0);
+  const remaining=totalIncome-totalDebt-totalExp-totalOut;
+
+  return (
+    <div>
+      {/* Month picker */}
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+        <span style={{fontSize:13,color:"#94a3b8",flexShrink:0}}>📅 Tháng:</span>
+        <input type="month" value={data.finance.month}
+          onChange={e=>upd("month",e.target.value)}
+          style={{...S.input,flex:1,fontSize:14,padding:"9px 12px"}}/>
+      </div>
+
+      {/* Summary cards */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+        {[
+          {lbl:"Tổng lương",val:fmt(totalIncome),color:"#10b981",icon:"💵"},
+          {lbl:"Tổng nợ",val:fmt(totalDebt),color:"#f43f5e",icon:"💳"},
+          {lbl:"Chi phí",val:fmt(totalExp+totalOut),color:"#f97316",icon:"🧾"},
+          {lbl:"Còn lại",val:fmt(remaining),color:remaining>=0?"#38bdf8":"#f43f5e",icon:"🏦"},
+        ].map(s=>(
+          <div key={s.lbl} style={{...S.card,padding:"12px 14px",borderTop:`3px solid ${s.color}`,marginBottom:0}}>
+            <div style={{fontSize:20,marginBottom:4}}>{s.icon}</div>
+            <div style={{fontSize:15,fontWeight:800,color:s.color}}>{s.val}</div>
+            <div style={{fontSize:11,color:"#64748b",marginTop:2}}>{s.lbl}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* LƯƠNG */}
+      <FinSection title="💵 Lương" total={fmt(totalIncome)} color="#10b981">
+        {data.finance.income.map((item:any)=>(
+          <FinRow key={item.id} label={item.label}
+            value={item.amount}
+            onChange={(v:any)=>upd("income",data.finance.income.map((x:any)=>x.id===item.id?{...x,amount:v}:x))}
+            onDelete={()=>upd("income",data.finance.income.filter((x:any)=>x.id!==item.id))}/>
+        ))}
+        <AddRow value={newIncome} onChange={setNewIncome} placeholder="Tên nguồn thu..."
+          onAdd={()=>{if(!newIncome.trim())return;upd("income",[...data.finance.income,{id:Date.now(),label:newIncome.trim(),amount:0}]);setNewIncome("");}}
+          color="#10b981"/>
+      </FinSection>
+
+      {/* NỢ */}
+      <FinSection title="💳 Nợ cần trả" total={fmt(totalDebt)} color="#f43f5e">
+        {data.finance.debt.map((item:any)=>(
+          <FinRow key={item.id} label={item.label} paid={item.paid}
+            value={item.amount}
+            onChange={(v:any)=>upd("debt",data.finance.debt.map((x:any)=>x.id===item.id?{...x,amount:v}:x))}
+            onDelete={()=>upd("debt",data.finance.debt.filter((x:any)=>x.id!==item.id))}
+            onTogglePaid={()=>upd("debt",data.finance.debt.map((x:any)=>x.id===item.id?{...x,paid:!x.paid}:x))}/>
+        ))}
+        <AddRow value={newDebt} onChange={setNewDebt} placeholder="Tên khoản nợ..."
+          onAdd={()=>{if(!newDebt.trim())return;upd("debt",[...data.finance.debt,{id:Date.now(),label:newDebt.trim(),amount:0,paid:false}]);setNewDebt("");}}
+          color="#f43f5e"/>
+      </FinSection>
+
+      {/* CHI PHÍ */}
+      <FinSection title="🧾 Chi phí cố định" total={fmt(totalExp)} color="#f97316">
+        {data.finance.expenses.map((item:any)=>{
+          const amt=+item.amount||0;
+          const below=item.min&&amt<item.min;
+          return (
+            <FinRow key={item.id} label={item.label} hint={item.min>0?(below?`⚠ min ${item.min.toLocaleString("vi-VN")}đ`:"✓ đủ"):""} hintColor={below?"#f43f5e":"#10b981"}
+              value={item.amount}
+              onChange={(v:any)=>upd("expenses",data.finance.expenses.map((x:any)=>x.id===item.id?{...x,amount:v}:x))}
+              onDelete={()=>upd("expenses",data.finance.expenses.filter((x:any)=>x.id!==item.id))}
+              borderColor={below?"#f43f5e":undefined}/>
           );
-        })()}
+        })}
+        <div style={{display:"flex",gap:8,marginTop:8}}>
+          <input value={newExp} onChange={e=>setNewExp(e.target.value)} placeholder="Tên chi phí..."
+            style={{...S.input,flex:1,fontSize:13,padding:"8px 10px"}}/>
+          <input type="number" value={newExpMin} onChange={e=>setNewExpMin(e.target.value)} placeholder="Min (đ)"
+            style={{...S.input,width:80,fontSize:13,padding:"8px 10px"}}/>
+          <button onClick={()=>{if(!newExp.trim())return;upd("expenses",[...data.finance.expenses,{id:Date.now(),label:newExp.trim(),amount:0,min:+newExpMin||0}]);setNewExp("");setNewExpMin("");}}
+            style={{...S.btn,background:"#f97316",padding:"8px 12px",fontSize:13}}>+</button>
+        </div>
+      </FinSection>
+
+      {/* ĐI CHƠI */}
+      <FinSection title="🎉 Đi chơi" total={fmt(totalOut)} color="#a78bfa">
+        <div style={{display:"flex",gap:8,marginBottom:10,flexWrap:"wrap"}}>
+          <input type="date" value={outDate} onChange={e=>setOutDate(e.target.value)}
+            style={{...S.input,flex:"1 1 120px",fontSize:13,padding:"8px 10px"}}/>
+          <input value={outNote} onChange={e=>setOutNote(e.target.value)} placeholder="Ghi chú..."
+            style={{...S.input,flex:"2 1 160px",fontSize:13,padding:"8px 10px"}}/>
+          <div style={{display:"flex",gap:8,width:"100%"}}>
+            <input type="number" value={outAmt} onChange={e=>setOutAmt(e.target.value)} placeholder="Số tiền..."
+              onKeyDown={e=>e.key==="Enter"&&outAmt&&(upd("outings",[...data.finance.outings,{id:Date.now(),date:outDate,note:outNote.trim(),amount:+outAmt}]),setOutNote(""),setOutAmt(""))}
+              style={{...S.input,flex:1,fontSize:13,padding:"8px 10px"}}/>
+            <button onClick={()=>{if(!outAmt)return;upd("outings",[...data.finance.outings,{id:Date.now(),date:outDate,note:outNote.trim(),amount:+outAmt}]);setOutNote("");setOutAmt("");}}
+              style={{...S.btn,background:"#a78bfa",color:"#fff",padding:"8px 14px",fontSize:13}}>+</button>
+          </div>
+        </div>
+        {!data.finance.outings.length&&<div style={{fontSize:13,color:"#475569",textAlign:"center",padding:"10px 0"}}>Chưa có lần đi chơi 🎈</div>}
+        {[...data.finance.outings].sort((a:any,b:any)=>b.date.localeCompare(a.date)).map((o:any)=>(
+          <div key={o.id} style={{display:"flex",alignItems:"center",gap:8,padding:"9px 0",borderBottom:"1px solid #1a2735"}}>
+            <span style={{fontSize:11,color:"#64748b",flexShrink:0,minWidth:76}}>📅 {o.date}</span>
+            <span style={{flex:1,fontSize:13,color:"#e2e8f0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{o.note||<span style={{color:"#475569",fontStyle:"italic"}}>Không ghi chú</span>}</span>
+            <span style={{fontWeight:700,color:"#a78bfa",fontSize:13,flexShrink:0}}>{(+o.amount).toLocaleString("vi-VN")}đ</span>
+            <button onClick={()=>upd("outings",data.finance.outings.filter((x:any)=>x.id!==o.id))} style={S.delBtn}>✕</button>
+          </div>
+        ))}
+      </FinSection>
+    </div>
+  );
+}
+
+function FinSection({title,total,color,children}:any){
+  return (
+    <div style={{...S.card,marginBottom:14}}>
+      <div style={{padding:"11px 14px",borderBottom:"1px solid #1f2d44",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <span style={{fontWeight:700,fontSize:14,color:"#f8fafc"}}>{title}</span>
+        <span style={{fontWeight:700,color,fontSize:14}}>{total}</span>
+      </div>
+      <div style={{padding:"8px 14px"}}>{children}</div>
+    </div>
+  );
+}
+
+function FinRow({label,value,onChange,onDelete,paid,onTogglePaid,hint,hintColor,borderColor}:any){
+  return (
+    <div style={{display:"flex",alignItems:"center",gap:8,padding:"9px 0",borderBottom:"1px solid #1a2735",opacity:paid?0.5:1}}>
+      {onTogglePaid&&(
+        <input type="checkbox" checked={paid} onChange={onTogglePaid}
+          style={{width:18,height:18,accentColor:"#10b981",cursor:"pointer",flexShrink:0}}/>
+      )}
+      <div style={{flex:1,minWidth:0}}>
+        <span style={{fontSize:14,color:paid?"#475569":"#e2e8f0",textDecoration:paid?"line-through":"none",
+          overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"block"}}>{label}</span>
+        {hint&&<span style={{fontSize:11,color:hintColor,fontWeight:600}}>{hint}</span>}
+      </div>
+      <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
+        <input type="number" value={value||""} onChange={e=>onChange(e.target.value)} placeholder="0"
+          style={{...S.input,width:100,padding:"6px 8px",fontSize:13,textAlign:"right",borderColor:borderColor||"#1f2d44"}}/>
+        <span style={{fontSize:12,color:"#475569"}}>đ</span>
+        <button onClick={onDelete} style={S.delBtn}>✕</button>
       </div>
     </div>
   );
 }
 
-function StatCard({ label, value, color }) {
+function AddRow({value,onChange,placeholder,onAdd,color}:any){
   return (
-    <div style={{ flex: 1, background: "#1e293b", borderRadius: 10, padding: "12px 14px", textAlign: "center" }}>
-      <div style={{ fontSize: 20, fontWeight: 700, color }}>{value}</div>
-      <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{label}</div>
+    <div style={{display:"flex",gap:8,marginTop:8}}>
+      <input value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder}
+        onKeyDown={e=>e.key==="Enter"&&onAdd()}
+        style={{...S.input,flex:1,fontSize:13,padding:"8px 10px"}}/>
+      <button onClick={onAdd} style={{...S.btn,background:color||"#38bdf8",padding:"8px 12px",fontSize:13}}>+ Thêm</button>
     </div>
   );
 }
 
-function SummaryCard({ label, value, color, icon }) {
-  return (
-    <div style={{ flex: "1 1 120px", background: "#1e293b", borderRadius: 10, padding: "12px 14px", borderTop: `3px solid ${color}` }}>
-      <div style={{ fontSize: 18, marginBottom: 4 }}>{icon}</div>
-      <div style={{ fontSize: 16, fontWeight: 700, color }}>{value}</div>
-      <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{label}</div>
-    </div>
-  );
+function Empty({text}:any){
+  return <div style={{textAlign:"center",color:"#475569",padding:"36px 0",fontSize:14}}>😴 {text}</div>;
 }
-
-function Section({ title, total, color, children }) {
-  return (
-    <div style={{ background: "#1e293b", borderRadius: 12, marginBottom: 16, overflow: "hidden", border: "1px solid #243347" }}>
-      <div style={{ padding: "12px 14px", borderBottom: "1px solid #243347", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontWeight: 700, fontSize: 15, color: "#f8fafc" }}>{title}</span>
-        <span style={{ fontWeight: 700, color, fontSize: 15 }}>{total}</span>
-      </div>
-      <div style={{ padding: "10px 14px" }}>{children}</div>
-    </div>
-  );
-}
-
-function Empty({ text }) {
-  return <div style={{ textAlign: "center", color: "#475569", padding: "32px 0", fontSize: 14 }}>😴 {text}</div>;
-}
-
-const inputStyle = {
-  background: "#1e293b", border: "1px solid #334155", borderRadius: 8, padding: "8px 12px",
-  color: "#e2e8f0", fontSize: 14, outline: "none",
-};
-
-const selectStyle = {
-  background: "#1e293b", border: "1px solid #334155", borderRadius: 8, padding: "8px 10px",
-  color: "#e2e8f0", fontSize: 14, outline: "none", cursor: "pointer",
-};
-
-const finRowStyle = {
-  display: "flex", alignItems: "center", gap: 8,
-  padding: "7px 0", borderBottom: "1px solid #1a2740",
-};
-
-const delBtn = {
-  background: "none", border: "none", color: "#334155", cursor: "pointer", fontSize: 14,
-};
-
-const btnStyle = {
-  background: "#38bdf8", border: "none", borderRadius: 8, padding: "8px 16px",
-  color: "#0f172a", fontWeight: 700, fontSize: 14, cursor: "pointer",
-};
