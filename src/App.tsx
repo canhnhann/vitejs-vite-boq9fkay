@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "./supabase";
 
 const USER_ID = "my-tracker";
@@ -106,32 +106,75 @@ export default function App() {
   const [todoView, setTodoView] = useState<"today" | "history">("today");
   const [todoSubView, setTodoSubView] = useState<"pending" | "done">("pending");
 
-  // Reset todos qua ngày mới: lưu vào lịch sử, xóa todo cũ
-  useEffect(() => {
-    if (loading) return;
+  // Reset todos qua ngày mới: lưu vào lịch sử, xóa todo cũ, giữ tối đa 14 ngày
+  const runDailyReset = useCallback((currentData: typeof initialData) => {
     const today = new Date().toISOString().slice(0, 10);
-    const oldTodos = data.todos.filter(t => t.date && t.date < today);
-    if (oldTodos.length === 0) return;
+    // Todos không có date hoặc date < today đều bị reset
+    const oldTodos = currentData.todos.filter(t => !t.date || t.date < today);
+    if (oldTodos.length === 0) return null;
 
-    // Nhóm theo ngày và lưu vào lịch sử
+    // Nhóm theo ngày (todo không có date → gán vào hôm qua)
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
     const byDate: Record<string, typeof oldTodos> = {};
     oldTodos.forEach(t => {
-      if (!byDate[t.date]) byDate[t.date] = [];
-      byDate[t.date].push(t);
+      const key = t.date && t.date < today ? t.date : yesterday;
+      if (!byDate[key]) byDate[key] = [];
+      byDate[key].push(t);
     });
 
-    const newHistory = [...(data.todoHistory || [])];
+    const newHistory = [...(currentData.todoHistory || [])];
     Object.entries(byDate).forEach(([date, items]) => {
-      const exists = newHistory.find(h => h.date === date);
-      if (!exists) newHistory.push({ date, items });
+      const existsIdx = newHistory.findIndex(h => h.date === date);
+      if (existsIdx === -1) {
+        newHistory.push({ date, items });
+      } else {
+        // Merge: thêm item chưa có vào entry đã tồn tại
+        const existing = new Set(newHistory[existsIdx].items.map(i => i.id));
+        const merged = [...newHistory[existsIdx].items, ...items.filter(i => !existing.has(i.id))];
+        newHistory[existsIdx] = { ...newHistory[existsIdx], items: merged };
+      }
     });
 
-    setData(d => ({
-      ...d,
-      todos: d.todos.filter(t => !t.date || t.date >= today),
-      todoHistory: newHistory,
-    }));
-  }, [loading]);
+    // Giữ tối đa 14 ngày gần nhất
+    const trimmed = newHistory
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, 14);
+
+    return {
+      todos: currentData.todos.filter(t => t.date && t.date >= today),
+      todoHistory: trimmed,
+    };
+  }, []);
+
+  useEffect(() => {
+    if (loading) return;
+
+    // Chạy ngay khi load xong
+    const patch = runDailyReset(data);
+    if (patch) setData(d => ({ ...d, ...patch }));
+
+    // Tính mili-giây đến 0h hôm sau để schedule reset chính xác
+    const scheduleNextMidnight = () => {
+      const now = new Date();
+      const midnight = new Date(now);
+      midnight.setHours(24, 0, 0, 0); // 0h ngày tiếp theo
+      return midnight.getTime() - now.getTime();
+    };
+
+    let timeoutId: ReturnType<typeof setTimeout>;
+    const scheduleMidnightReset = () => {
+      timeoutId = setTimeout(() => {
+        setData(d => {
+          const patch = runDailyReset(d);
+          return patch ? { ...d, ...patch } : d;
+        });
+        scheduleMidnightReset(); // lên lịch cho ngày tiếp theo
+      }, scheduleNextMidnight());
+    };
+
+    scheduleMidnightReset();
+    return () => clearTimeout(timeoutId);
+  }, [loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Goals
   const [newGoal, setNewGoal] = useState("");
