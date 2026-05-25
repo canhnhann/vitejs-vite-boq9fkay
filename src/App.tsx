@@ -195,11 +195,24 @@ export default function App() {
 
   // Chờ Supabase trả dữ liệu xong mới render — tránh flash dữ liệu mẫu
   if (loading) return (
-    <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
-      minHeight:"100svh",background:"#0a0f1e",gap:16}}>
-      <div style={{fontSize:36}}>📖</div>
-      <div style={{fontSize:18,fontWeight:800,color:"#f8fafc",letterSpacing:"-0.5px"}}>KAQ Tracker</div>
-      <div style={{fontSize:13,color:"#38bdf8"}}>Đang tải dữ liệu…</div>
+    <div style={{
+      position:"fixed",inset:0,
+      backgroundImage:"url('/loading-bg.jpg')",
+      backgroundSize:"cover",backgroundPosition:"center",
+      display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-end",
+      paddingBottom:"env(safe-area-inset-bottom, 48px)",
+    }}>
+      {/* Overlay gradient từ dưới lên */}
+      <div style={{
+        position:"absolute",inset:0,
+        background:"linear-gradient(to top, rgba(10,15,30,0.85) 0%, rgba(10,15,30,0.2) 50%, transparent 100%)",
+      }}/>
+      {/* Nội dung */}
+      <div style={{position:"relative",textAlign:"center",paddingBottom:48,display:"flex",flexDirection:"column",alignItems:"center",gap:10}}>
+        <div style={{fontSize:36}}>📖</div>
+        <div style={{fontSize:22,fontWeight:800,color:"#f8fafc",letterSpacing:"-0.5px"}}>KAQ Tracker</div>
+        <div style={{fontSize:13,color:"#38bdf8"}}>Đang tải dữ liệu…</div>
+      </div>
     </div>
   );
 
