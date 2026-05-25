@@ -129,10 +129,16 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const saveTimer = useRef<ReturnType<typeof setTimeout>|null>(null);
 
-  // Load from Supabase
+  // Load from Supabase — delay tối thiểu 1s để màn hình loading hiện đủ lâu
   useEffect(() => {
+    const t0 = Date.now();
     supabase.from("tracker_data").select("data").eq("user_id",USER_ID).maybeSingle()
-      .then(({data:row}) => { if (row?.data) setData(row.data); setLoading(false); });
+      .then(({data:row}) => {
+        if (row?.data) setData(row.data);
+        const elapsed = Date.now() - t0;
+        const remain = Math.max(0, 1000 - elapsed);
+        setTimeout(() => setLoading(false), remain);
+      });
   }, []);
 
   // Debounce save — 1500ms để giảm số lần ghi khi gõ phím liên tục
