@@ -104,6 +104,7 @@ export default function App() {
   const [newPriority, setNewPriority] = useState("trung bình");
   const [newTodoDate, setNewTodoDate] = useState(new Date().toISOString().slice(0, 10));
   const [todoView, setTodoView] = useState<"today" | "history">("today");
+  const [todoSubView, setTodoSubView] = useState<"pending" | "done">("pending");
 
   // Reset todos qua ngày mới: lưu vào lịch sử, xóa todo cũ
   useEffect(() => {
@@ -404,46 +405,130 @@ export default function App() {
                   }} style={btnStyle}>+ Thêm</button>
                 </div>
 
-                {/* Danh sách theo ưu tiên */}
-                {["cao", "trung bình", "thấp"].map(p => {
+                {/* Sub-tabs: Chưa xong / Đã hoàn thành */}
+                {(() => {
                   const today = new Date().toISOString().slice(0, 10);
-                  const items = data.todos.filter(t => t.priority === p);
-                  if (!items.length) return null;
+                  const pendingTodos = data.todos.filter(t => !t.done);
+                  const doneTodosLocal = data.todos.filter(t => t.done);
                   return (
-                    <div key={p} style={{ marginBottom: 16 }}>
-                      <div style={{ fontSize: 12, color: PRIORITY_COLOR[p], fontWeight: 700, marginBottom: 6, textTransform: "uppercase" as const, letterSpacing: 1 }}>
-                        Ưu tiên {p}
+                    <>
+                      <div style={{ display: "flex", gap: 6, marginBottom: 14, background: "#0f172a", borderRadius: 10, padding: 4 }}>
+                        {([
+                          { key: "pending", label: "📋 Cần làm", count: pendingTodos.length },
+                          { key: "done", label: "✅ Đã hoàn thành", count: doneTodosLocal.length },
+                        ] as const).map(({ key, label, count }) => (
+                          <button key={key} onClick={() => setTodoSubView(key)} style={{
+                            flex: 1, background: todoSubView === key ? "#1e293b" : "transparent",
+                            color: todoSubView === key ? "#f8fafc" : "#64748b",
+                            border: "none", borderRadius: 8, padding: "7px 12px",
+                            fontSize: 13, fontWeight: todoSubView === key ? 700 : 400,
+                            cursor: "pointer", display: "flex", alignItems: "center",
+                            justifyContent: "center", gap: 6, transition: "all 0.15s",
+                          }}>
+                            {label}
+                            <span style={{
+                              background: todoSubView === key
+                                ? (key === "done" ? "#10b981" : "#38bdf8")
+                                : "#334155",
+                              color: todoSubView === key ? "#0f172a" : "#94a3b8",
+                              borderRadius: 999, fontSize: 11, fontWeight: 700,
+                              padding: "1px 7px", minWidth: 20, textAlign: "center",
+                            }}>{count}</span>
+                          </button>
+                        ))}
                       </div>
-                      {items.map(t => {
-                        const isOverdue = t.date && t.date < today && !t.done;
-                        return (
-                          <div key={t.id} style={{ background: "#1e293b", borderRadius: 10, padding: "10px 14px", marginBottom: 8, borderLeft: `3px solid ${isOverdue ? "#f43f5e" : PRIORITY_COLOR[p]}` }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                              <input type="checkbox" checked={t.done}
-                                onChange={() => setData(d => ({ ...d, todos: d.todos.map(x => x.id === t.id ? { ...x, done: !x.done } : x) }))}
-                                style={{ width: 16, height: 16, accentColor: PRIORITY_COLOR[p], cursor: "pointer", flexShrink: 0 }} />
-                              <span style={{ flex: 1, textDecoration: t.done ? "line-through" : "none", color: t.done ? "#475569" : "#e2e8f0" }}>{t.text}</span>
-                              <button onClick={() => setData(d => ({ ...d, todos: d.todos.filter(x => x.id !== t.id) }))}
-                                style={{ background: "none", border: "none", color: "#475569", cursor: "pointer" }}>✕</button>
+
+                      {/* Tab Cần làm */}
+                      {todoSubView === "pending" && (
+                        <div>
+                          {["cao", "trung bình", "thấp"].map(p => {
+                            const items = pendingTodos.filter(t => t.priority === p);
+                            if (!items.length) return null;
+                            return (
+                              <div key={p} style={{ marginBottom: 16 }}>
+                                <div style={{ fontSize: 12, color: PRIORITY_COLOR[p], fontWeight: 700, marginBottom: 6, textTransform: "uppercase" as const, letterSpacing: 1 }}>
+                                  Ưu tiên {p}
+                                </div>
+                                {items.map(t => {
+                                  const isOverdue = t.date && t.date < today;
+                                  return (
+                                    <div key={t.id} style={{ background: "#1e293b", borderRadius: 10, padding: "10px 14px", marginBottom: 8, borderLeft: `3px solid ${isOverdue ? "#f43f5e" : PRIORITY_COLOR[p]}` }}>
+                                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                        <input type="checkbox" checked={false}
+                                          onChange={() => setData(d => ({ ...d, todos: d.todos.map(x => x.id === t.id ? { ...x, done: true } : x) }))}
+                                          style={{ width: 16, height: 16, accentColor: PRIORITY_COLOR[p], cursor: "pointer", flexShrink: 0 }} />
+                                        <span style={{ flex: 1, color: "#e2e8f0" }}>{t.text}</span>
+                                        <button onClick={() => setData(d => ({ ...d, todos: d.todos.filter(x => x.id !== t.id) }))}
+                                          style={{ background: "none", border: "none", color: "#475569", cursor: "pointer" }}>✕</button>
+                                      </div>
+                                      {(t.date || isOverdue) && (
+                                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 5, paddingLeft: 26 }}>
+                                          {t.date && <span style={{ fontSize: 11, color: "#64748b" }}>📅 {t.date}</span>}
+                                          {isOverdue && <span style={{ fontSize: 11, color: "#f43f5e", fontWeight: 700 }}>⚠ Quá hạn</span>}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })}
+                          {pendingTodos.length === 0 && (
+                            <div style={{ textAlign: "center", padding: "32px 0" }}>
+                              <div style={{ fontSize: 32, marginBottom: 8 }}>🎉</div>
+                              <div style={{ color: "#10b981", fontWeight: 700, fontSize: 15 }}>Tuyệt vời! Đã hoàn thành tất cả!</div>
                             </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 5, paddingLeft: 26 }}>
-                              {t.date && (
-                                <span style={{ fontSize: 11, color: "#64748b" }}>📅 {t.date}</span>
-                              )}
-                              {isOverdue && (
-                                <span style={{ fontSize: 11, color: "#f43f5e", fontWeight: 700 }}>⚠ Chưa hoàn thành</span>
-                              )}
-                              {t.done && (
-                                <span style={{ fontSize: 11, color: "#10b981", fontWeight: 700 }}>✓ Hoàn thành</span>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Tab Đã hoàn thành */}
+                      {todoSubView === "done" && (
+                        <div>
+                          {doneTodosLocal.length === 0 && <Empty text="Chưa hoàn thành việc nào hôm nay" />}
+                          {doneTodosLocal.length > 0 && (
+                            <>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                                <span style={{ fontSize: 13, color: "#10b981", fontWeight: 600 }}>
+                                  ✅ {doneTodosLocal.length} việc đã xong
+                                </span>
+                              </div>
+                              {["cao", "trung bình", "thấp"].map(p => {
+                                const items = doneTodosLocal.filter(t => t.priority === p);
+                                if (!items.length) return null;
+                                return (
+                                  <div key={p} style={{ marginBottom: 16 }}>
+                                    <div style={{ fontSize: 12, color: PRIORITY_COLOR[p], fontWeight: 700, marginBottom: 6, textTransform: "uppercase" as const, letterSpacing: 1, opacity: 0.7 }}>
+                                      Ưu tiên {p}
+                                    </div>
+                                    {items.map(t => (
+                                      <div key={t.id} style={{ background: "#1e293b", borderRadius: 10, padding: "10px 14px", marginBottom: 8, borderLeft: `3px solid #10b981`, opacity: 0.75 }}>
+                                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                          <input type="checkbox" checked={true}
+                                            onChange={() => setData(d => ({ ...d, todos: d.todos.map(x => x.id === t.id ? { ...x, done: false } : x) }))}
+                                            style={{ width: 16, height: 16, accentColor: "#10b981", cursor: "pointer", flexShrink: 0 }} />
+                                          <span style={{ flex: 1, textDecoration: "line-through", color: "#475569" }}>{t.text}</span>
+                                          <span style={{ fontSize: 11, color: "#10b981", fontWeight: 700 }}>✓ Xong</span>
+                                          <button onClick={() => setData(d => ({ ...d, todos: d.todos.filter(x => x.id !== t.id) }))}
+                                            style={{ background: "none", border: "none", color: "#334155", cursor: "pointer" }}>✕</button>
+                                        </div>
+                                        {t.date && (
+                                          <div style={{ marginTop: 5, paddingLeft: 26 }}>
+                                            <span style={{ fontSize: 11, color: "#64748b" }}>📅 {t.date}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                );
+                              })}
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </>
                   );
-                })}
-                {data.todos.length === 0 && <Empty text="Chưa có việc cần làm nào hôm nay" />}
+                })()}
               </div>
             )}
 
