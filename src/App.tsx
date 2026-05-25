@@ -193,6 +193,16 @@ export default function App() {
     {icon:"📝",val:`${doneLessons}/${data.lessons.length}`,lbl:"Soạn"},
   ];
 
+  // Chờ Supabase trả dữ liệu xong mới render — tránh flash dữ liệu mẫu
+  if (loading) return (
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
+      minHeight:"100svh",background:"#0a0f1e",gap:16}}>
+      <div style={{fontSize:36}}>📖</div>
+      <div style={{fontSize:18,fontWeight:800,color:"#f8fafc",letterSpacing:"-0.5px"}}>KAQ Tracker</div>
+      <div style={{fontSize:13,color:"#38bdf8"}}>Đang tải dữ liệu…</div>
+    </div>
+  );
+
   return (
     <div style={{display:"flex",flexDirection:"column",minHeight:"100svh",background:"#0a0f1e"}}>
 
@@ -208,7 +218,6 @@ export default function App() {
             <h1 style={{margin:0,fontSize:20,fontWeight:800,color:"#f8fafc",letterSpacing:"-0.5px"}}>
               📖 KAQ Tracker
             </h1>
-            {loading && <span style={{fontSize:12,color:"#38bdf8",animation:"pulse 1s infinite"}}>đang tải…</span>}
           </div>
           <p style={{margin:"2px 0 10px",fontSize:12,color:"#475569"}}>Theo dõi tiến trình cuộc đời</p>
 
