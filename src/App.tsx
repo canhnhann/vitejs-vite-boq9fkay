@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "./supabase";
 
+// ─── User ID — đổi giá trị này nếu muốn dùng nhiều tài khoản ──
 const USER_ID = "my-tracker";
 
 // ─── Dùng giờ LOCAL (UTC+7) thay vì UTC của toISOString() ─────
@@ -134,7 +135,7 @@ export default function App() {
       .then(({data:row}) => { if (row?.data) setData(row.data); setLoading(false); });
   }, []);
 
-  // Debounce save
+  // Debounce save — 1500ms để giảm số lần ghi khi gõ phím liên tục
   useEffect(() => {
     if (loading) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -142,7 +143,7 @@ export default function App() {
       supabase.from("tracker_data")
         .upsert({user_id:USER_ID, data, updated_at:new Date()})
         .then(({error}) => { if (error) console.error("Lỗi lưu:", error.message); });
-    }, 600);
+    }, 1500);
   }, [data, loading]);
 
   // ─ Daily reset
@@ -172,7 +173,7 @@ export default function App() {
     };
     sched();
     return ()=>clearTimeout(tid);
-  }, [loading]); // eslint-disable-line
+  }, [loading, runDailyReset]);
 
   // ─ Stats
   const todayStr = localDateStr();
