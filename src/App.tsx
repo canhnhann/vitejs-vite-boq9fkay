@@ -288,6 +288,78 @@ export default function App() {
 }
 
 // ══════════════════════════════════════════════════════════════
+// ADD PANEL — Slide từ phải, dùng chung cho mọi tab
+// ══════════════════════════════════════════════════════════════
+function AddPanel({open, onClose, title, color="#38bdf8", children}:any){
+  return (
+    <>
+      {/* Backdrop */}
+      {open && (
+        <div onClick={onClose} style={{
+          position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:200,
+          animation:"fadeIn 0.2s ease",
+        }}/>
+      )}
+      {/* Panel */}
+      <div style={{
+        position:"fixed",top:0,right:0,bottom:0,
+        width:"min(340px, 92vw)",
+        background:"#111827",
+        borderLeft:"1px solid #1f2d44",
+        zIndex:201,
+        transform:open?"translateX(0)":"translateX(100%)",
+        transition:"transform 0.28s cubic-bezier(.4,0,.2,1)",
+        display:"flex",flexDirection:"column",
+        boxShadow:open?"-8px 0 32px rgba(0,0,0,0.4)":"none",
+        paddingTop:"env(safe-area-inset-top,0px)",
+      }}>
+        {/* Header */}
+        <div style={{
+          display:"flex",alignItems:"center",justifyContent:"space-between",
+          padding:"16px 18px",borderBottom:"1px solid #1f2d44",
+          background:"#0d1829",flexShrink:0,
+        }}>
+          <span style={{fontWeight:800,fontSize:16,color:"#f8fafc"}}>{title}</span>
+          <button onClick={onClose} style={{
+            background:"#1f2d44",border:"none",borderRadius:8,
+            color:"#94a3b8",fontSize:18,cursor:"pointer",
+            width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",
+          }}>✕</button>
+        </div>
+        {/* Body */}
+        <div style={{flex:1,overflowY:"auto",padding:"18px 18px",
+          paddingBottom:"calc(env(safe-area-inset-bottom,16px) + 16px)"}}>
+          {children}
+        </div>
+        {/* Accent bar */}
+        <div style={{height:3,background:color,flexShrink:0}}/>
+      </div>
+
+      <style>{`
+        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+      `}</style>
+    </>
+  );
+}
+
+// Nút + nổi góc dưới phải
+function FabAdd({onClick, color="#38bdf8"}:any){
+  return (
+    <button onClick={onClick} style={{
+      position:"fixed",right:20,bottom:"calc(env(safe-area-inset-bottom,16px) + 20px)",
+      zIndex:150,
+      width:52,height:52,borderRadius:"50%",
+      background:color,border:"none",
+      color:"#0a0f1e",fontSize:26,fontWeight:700,
+      cursor:"pointer",
+      boxShadow:"0 4px 20px rgba(0,0,0,0.4)",
+      display:"flex",alignItems:"center",justifyContent:"center",
+      transition:"transform 0.15s",
+    }}>＋</button>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
 // TAB 0 — MÔN HỌC
 // ══════════════════════════════════════════════════════════════
 function TabSubjects({data,setData}:any) {
@@ -295,34 +367,40 @@ function TabSubjects({data,setData}:any) {
   const [color,setColor]=useState(COLORS[3]);
   const [newItem,setNewItem]=useState<Record<number,string>>({});
   const [expanded,setExpanded]=useState<number|null>(null);
+  const [panelOpen,setPanelOpen]=useState(false);
 
   const addSubject=()=>{
     if (!name.trim()) return;
     const id=Date.now();
     setData((d:any)=>({...d,subjects:[...d.subjects,{id,name:name.trim(),color,examDate:"",items:[]}]}));
-    setName(""); setExpanded(id);
+    setName(""); setExpanded(id); setPanelOpen(false);
   };
 
   return (
     <div>
-      {/* Add row */}
-      <div style={{...S.card,padding:14,marginBottom:14}}>
-        <input value={name} onChange={e=>setName(e.target.value)}
-          placeholder="Tên môn học..." onKeyDown={e=>e.key==="Enter"&&addSubject()}
-          style={{...S.input,marginBottom:10}}/>
-        <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          <div style={{display:"flex",gap:6,flex:1}}>
-            {COLORS.map(c=>(
-              <div key={c} onClick={()=>setColor(c)} style={{
-                width:26,height:26,borderRadius:"50%",background:c,cursor:"pointer",
-                border:color===c?"2.5px solid #fff":"2.5px solid transparent",
-                boxShadow:color===c?"0 0 0 1px "+c:"none",
-              }}/>
-            ))}
+      <FabAdd onClick={()=>setPanelOpen(true)} color="#38bdf8"/>
+      <AddPanel open={panelOpen} onClose={()=>setPanelOpen(false)} title="➕ Thêm môn học" color="#38bdf8">
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          <input value={name} onChange={e=>setName(e.target.value)}
+            placeholder="Tên môn học..." onKeyDown={e=>e.key==="Enter"&&addSubject()}
+            style={S.input} autoFocus/>
+          <div>
+            <div style={{fontSize:12,color:"#64748b",marginBottom:8}}>Chọn màu</div>
+            <div style={{display:"flex",gap:10}}>
+              {COLORS.map(c=>(
+                <div key={c} onClick={()=>setColor(c)} style={{
+                  width:32,height:32,borderRadius:"50%",background:c,cursor:"pointer",
+                  border:color===c?"3px solid #fff":"3px solid transparent",
+                  boxShadow:color===c?"0 0 0 2px "+c:"none",
+                }}/>
+              ))}
+            </div>
           </div>
-          <button onClick={addSubject} style={{...S.btn,padding:"9px 16px",fontSize:14}}>+ Thêm</button>
+          <button onClick={addSubject} style={{...S.btn,width:"100%",justifyContent:"center",marginTop:4}}>
+            + Thêm môn
+          </button>
         </div>
-      </div>
+      </AddPanel>
 
       {data.subjects.length===0 && <Empty text="Chưa có môn học nào"/>}
       {[...data.subjects].sort((a:any,b:any)=>{
@@ -425,6 +503,7 @@ function TabTodos({data,setData,todayStr}:any) {
   const [text,setText]=useState("");
   const [priority,setPriority]=useState("trung bình");
   const [date,setDate]=useState(todayStr);
+  const [panelOpen,setPanelOpen]=useState(false);
 
   const pending=data.todos.filter((t:any)=>!t.done);
   const done=data.todos.filter((t:any)=>t.done);
@@ -432,11 +511,34 @@ function TabTodos({data,setData,todayStr}:any) {
   const add=()=>{
     if(!text.trim())return;
     setData((d:any)=>({...d,todos:[...d.todos,{id:Date.now(),text:text.trim(),done:false,priority,date}]}));
-    setText("");
+    setText(""); setPanelOpen(false);
   };
 
   return (
     <div>
+      <FabAdd onClick={()=>setPanelOpen(true)} color="#38bdf8"/>
+      <AddPanel open={panelOpen} onClose={()=>setPanelOpen(false)} title="➕ Thêm việc cần làm" color="#38bdf8">
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          <input value={text} onChange={e=>setText(e.target.value)} placeholder="Việc cần làm..."
+            onKeyDown={e=>e.key==="Enter"&&add()} style={S.input} autoFocus/>
+          <div>
+            <div style={{fontSize:12,color:"#64748b",marginBottom:6}}>Ngày</div>
+            <input type="date" value={date} onChange={e=>setDate(e.target.value)} style={S.input}/>
+          </div>
+          <div>
+            <div style={{fontSize:12,color:"#64748b",marginBottom:6}}>Ưu tiên</div>
+            <select value={priority} onChange={e=>setPriority(e.target.value)} style={{...S.select,width:"100%"}}>
+              <option value="cao">🔴 Cao</option>
+              <option value="trung bình">🟡 Trung bình</option>
+              <option value="thấp">🟢 Thấp</option>
+            </select>
+          </div>
+          <button onClick={add} style={{...S.btn,width:"100%",justifyContent:"center",marginTop:4}}>
+            + Thêm việc
+          </button>
+        </div>
+      </AddPanel>
+
       {/* View toggle */}
       <div style={{display:"flex",gap:8,marginBottom:14}}>
         {(["today","history"] as const).map(v=>(
@@ -451,23 +553,6 @@ function TabTodos({data,setData,todayStr}:any) {
 
       {view==="today"&&(
         <div>
-          {/* Add form */}
-          <div style={{...S.card,padding:14,marginBottom:14}}>
-            <input value={text} onChange={e=>setText(e.target.value)} placeholder="Thêm việc cần làm..."
-              onKeyDown={e=>e.key==="Enter"&&add()} style={{...S.input,marginBottom:10}}/>
-            <div style={{display:"flex",gap:8}}>
-              <input type="date" value={date} onChange={e=>setDate(e.target.value)}
-                style={{...S.input,flex:1,fontSize:14,padding:"9px 10px"}}/>
-              <select value={priority} onChange={e=>setPriority(e.target.value)}
-                style={{...S.select,flex:1,fontSize:14,padding:"9px 10px"}}>
-                <option value="cao">🔴 Cao</option>
-                <option value="trung bình">🟡 TB</option>
-                <option value="thấp">🟢 Thấp</option>
-              </select>
-              <button onClick={add} style={{...S.btn,padding:"9px 16px",fontSize:14}}>+</button>
-            </div>
-          </div>
-
           {/* Sub tabs */}
           <div style={{display:"flex",gap:6,background:"#0d1829",borderRadius:12,padding:4,marginBottom:14}}>
             {([{k:"pending",lbl:"📋 Cần làm",cnt:pending.length},{k:"done",lbl:"✅ Hoàn thành",cnt:done.length}] as const).map(({k,lbl,cnt})=>(
@@ -598,22 +683,28 @@ function TabTodos({data,setData,todayStr}:any) {
 function TabGoals({data,setData}:any) {
   const [text,setText]=useState("");
   const [deadline,setDeadline]=useState("");
+  const [panelOpen,setPanelOpen]=useState(false);
   const add=()=>{
     if(!text.trim())return;
     setData((d:any)=>({...d,goals:[...d.goals,{id:Date.now(),text:text.trim(),deadline,done:false}]}));
-    setText("");setDeadline("");
+    setText("");setDeadline("");setPanelOpen(false);
   };
   return (
     <div>
-      <div style={{...S.card,padding:14,marginBottom:14}}>
-        <input value={text} onChange={e=>setText(e.target.value)} placeholder="Mục tiêu của bạn..."
-          onKeyDown={e=>e.key==="Enter"&&add()} style={{...S.input,marginBottom:10}}/>
-        <div style={{display:"flex",gap:8}}>
-          <input type="date" value={deadline} onChange={e=>setDeadline(e.target.value)}
-            style={{...S.input,flex:1,fontSize:14,padding:"9px 10px"}}/>
-          <button onClick={add} style={{...S.btn,padding:"9px 16px"}}>+ Thêm</button>
+      <FabAdd onClick={()=>setPanelOpen(true)} color="#38bdf8"/>
+      <AddPanel open={panelOpen} onClose={()=>setPanelOpen(false)} title="➕ Thêm mục tiêu" color="#38bdf8">
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          <input value={text} onChange={e=>setText(e.target.value)} placeholder="Mục tiêu của bạn..."
+            onKeyDown={e=>e.key==="Enter"&&add()} style={S.input} autoFocus/>
+          <div>
+            <div style={{fontSize:12,color:"#64748b",marginBottom:6}}>Deadline</div>
+            <input type="date" value={deadline} onChange={e=>setDeadline(e.target.value)} style={S.input}/>
+          </div>
+          <button onClick={add} style={{...S.btn,width:"100%",justifyContent:"center",marginTop:4}}>
+            + Thêm mục tiêu
+          </button>
         </div>
-      </div>
+      </AddPanel>
       {data.goals.length===0&&<Empty text="Chưa có mục tiêu nào"/>}
       {data.goals.map((g:any)=>{
         const dl=g.deadline?Math.ceil((new Date(g.deadline).getTime()-Date.now())/86400000):null;
@@ -648,27 +739,36 @@ function TabStudy({data,setData,totalMin}:any) {
   const [date,setDate]=useState(localDateStr());
   const [minutes,setMinutes]=useState("");
   const [note,setNote]=useState("");
+  const [panelOpen,setPanelOpen]=useState(false);
   const add=()=>{
     if(!minutes||isNaN(+minutes))return;
     setData((d:any)=>({...d,studyLog:[...d.studyLog,{id:Date.now(),date,minutes:+minutes,note}]}));
-    setMinutes("");setNote("");
+    setMinutes("");setNote("");setPanelOpen(false);
   };
   return (
     <div>
-      <div style={{...S.card,padding:14,marginBottom:14}}>
-        <div style={{fontSize:13,color:"#94a3b8",marginBottom:10,fontWeight:600}}>📝 Ghi thời gian học</div>
-        <div style={{display:"flex",gap:8,marginBottom:10}}>
-          <input type="date" value={date} onChange={e=>setDate(e.target.value)}
-            style={{...S.input,flex:1,fontSize:14,padding:"9px 10px"}}/>
-          <input type="number" value={minutes} onChange={e=>setMinutes(e.target.value)} placeholder="Phút"
-            style={{...S.input,width:80,fontSize:14,padding:"9px 10px"}}/>
+      <FabAdd onClick={()=>setPanelOpen(true)} color="#38bdf8"/>
+      <AddPanel open={panelOpen} onClose={()=>setPanelOpen(false)} title="➕ Ghi thời gian học" color="#38bdf8">
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          <div>
+            <div style={{fontSize:12,color:"#64748b",marginBottom:6}}>Ngày</div>
+            <input type="date" value={date} onChange={e=>setDate(e.target.value)} style={S.input}/>
+          </div>
+          <div>
+            <div style={{fontSize:12,color:"#64748b",marginBottom:6}}>Số phút</div>
+            <input type="number" value={minutes} onChange={e=>setMinutes(e.target.value)}
+              placeholder="Ví dụ: 60" style={S.input} autoFocus/>
+          </div>
+          <div>
+            <div style={{fontSize:12,color:"#64748b",marginBottom:6}}>Ghi chú</div>
+            <input value={note} onChange={e=>setNote(e.target.value)} placeholder="Học gì..."
+              onKeyDown={e=>e.key==="Enter"&&add()} style={S.input}/>
+          </div>
+          <button onClick={add} style={{...S.btn,width:"100%",justifyContent:"center",marginTop:4}}>
+            + Ghi lại
+          </button>
         </div>
-        <div style={{display:"flex",gap:8}}>
-          <input value={note} onChange={e=>setNote(e.target.value)} placeholder="Ghi chú..."
-            onKeyDown={e=>e.key==="Enter"&&add()} style={{...S.input,flex:1,fontSize:14,padding:"9px 10px"}}/>
-          <button onClick={add} style={{...S.btn,padding:"9px 16px"}}>+ Ghi</button>
-        </div>
-      </div>
+      </AddPanel>
 
       {/* Stats */}
       <div style={{display:"flex",gap:10,marginBottom:14}}>
@@ -709,30 +809,40 @@ function TabLessons({data,setData,doneLessons}:any) {
   const [lesson,setLesson]=useState("");
   const [subject,setSubject]=useState("");
   const [status,setStatus]=useState("chưa soạn");
+  const [panelOpen,setPanelOpen]=useState(false);
   const add=()=>{
     if(!lesson.trim())return;
     setData((d:any)=>({...d,lessons:[...d.lessons,{id:Date.now(),subject,lesson:lesson.trim(),status}]}));
-    setLesson("");setSubject("");
+    setLesson("");setSubject("");setPanelOpen(false);
   };
   return (
     <div>
-      <div style={{...S.card,padding:14,marginBottom:14}}>
-        <div style={{display:"flex",gap:8,marginBottom:10}}>
-          <input value={subject} onChange={e=>setSubject(e.target.value)} placeholder="Môn..."
-            style={{...S.input,width:90,fontSize:14,padding:"9px 10px"}}/>
-          <input value={lesson} onChange={e=>setLesson(e.target.value)} placeholder="Tên bài soạn..."
-            onKeyDown={e=>e.key==="Enter"&&add()} style={{...S.input,flex:1,fontSize:14,padding:"9px 10px"}}/>
+      <FabAdd onClick={()=>setPanelOpen(true)} color="#10b981"/>
+      <AddPanel open={panelOpen} onClose={()=>setPanelOpen(false)} title="➕ Thêm bài soạn" color="#10b981">
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          <div>
+            <div style={{fontSize:12,color:"#64748b",marginBottom:6}}>Môn</div>
+            <input value={subject} onChange={e=>setSubject(e.target.value)}
+              placeholder="Toán, Văn, Anh..." style={S.input} autoFocus/>
+          </div>
+          <div>
+            <div style={{fontSize:12,color:"#64748b",marginBottom:6}}>Tên bài soạn</div>
+            <input value={lesson} onChange={e=>setLesson(e.target.value)}
+              placeholder="Tên bài..." onKeyDown={e=>e.key==="Enter"&&add()} style={S.input}/>
+          </div>
+          <div>
+            <div style={{fontSize:12,color:"#64748b",marginBottom:6}}>Trạng thái</div>
+            <select value={status} onChange={e=>setStatus(e.target.value)} style={{...S.select,width:"100%"}}>
+              <option value="chưa soạn">Chưa soạn</option>
+              <option value="đang soạn">Đang soạn</option>
+              <option value="hoàn thành">Hoàn thành</option>
+            </select>
+          </div>
+          <button onClick={add} style={{...S.btn,background:"#10b981",width:"100%",justifyContent:"center",marginTop:4}}>
+            + Thêm bài
+          </button>
         </div>
-        <div style={{display:"flex",gap:8}}>
-          <select value={status} onChange={e=>setStatus(e.target.value)}
-            style={{...S.select,flex:1,fontSize:14,padding:"9px 10px"}}>
-            <option value="chưa soạn">Chưa soạn</option>
-            <option value="đang soạn">Đang soạn</option>
-            <option value="hoàn thành">Hoàn thành</option>
-          </select>
-          <button onClick={add} style={{...S.btn,padding:"9px 16px"}}>+ Thêm</button>
-        </div>
-      </div>
+      </AddPanel>
 
       {/* Progress */}
       <div style={{...S.card,padding:"12px 14px",marginBottom:14}}>
@@ -783,6 +893,7 @@ function TabFinance({data,setData}:any) {
   const [outDate,setOutDate]=useState(localDateStr());
   const [outNote,setOutNote]=useState("");
   const [outAmt,setOutAmt]=useState("");
+  const [panelType,setPanelType]=useState<"income"|"debt"|"expense"|"outing"|null>(null);
 
   const upd=(key:string,val:any)=>setData((d:any)=>({...d,finance:{...d.finance,[key]:val}}));
   const fmt=(n:number)=>n.toLocaleString("vi-VN")+"đ";
@@ -793,7 +904,115 @@ function TabFinance({data,setData}:any) {
   const totalOut=data.finance.outings.reduce((a:number,b:any)=>a+(+b.amount||0),0);
   const remaining=totalIncome-totalDebt-totalExp-totalOut;
 
+  const panelMeta:Record<string,{title:string;color:string}> = {
+    income:{title:"➕ Thêm nguồn thu",color:"#10b981"},
+    debt:{title:"➕ Thêm khoản nợ",color:"#f43f5e"},
+    expense:{title:"➕ Thêm chi phí cố định",color:"#f97316"},
+    outing:{title:"➕ Ghi lần đi chơi",color:"#a78bfa"},
+  };
+
   return (
+    <div>
+      {/* FAB với menu chọn loại */}
+      <div style={{position:"fixed",right:20,bottom:"calc(env(safe-area-inset-bottom,16px) + 20px)",zIndex:150,display:"flex",flexDirection:"column",alignItems:"flex-end",gap:10}}>
+        {panelType===null && (
+          <>
+            {[
+              {type:"outing" as const,icon:"🎉",color:"#a78bfa"},
+              {type:"expense" as const,icon:"🧾",color:"#f97316"},
+              {type:"debt" as const,icon:"💳",color:"#f43f5e"},
+              {type:"income" as const,icon:"💵",color:"#10b981"},
+            ].map(({type,icon,color})=>(
+              <button key={type} onClick={()=>setPanelType(type)} style={{
+                background:color,border:"none",borderRadius:999,
+                color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",
+                padding:"8px 14px",boxShadow:"0 3px 12px rgba(0,0,0,0.4)",
+                display:"flex",alignItems:"center",gap:6,
+                whiteSpace:"nowrap",
+              }}>{icon} {panelMeta[type].title.replace("➕ Thêm ","").replace("➕ Ghi ","")}</button>
+            ))}
+          </>
+        )}
+        <button onClick={()=>setPanelType(p=>p===null?"income":null)} style={{
+          width:52,height:52,borderRadius:"50%",
+          background:"#38bdf8",border:"none",
+          color:"#0a0f1e",fontSize:26,fontWeight:700,cursor:"pointer",
+          boxShadow:"0 4px 20px rgba(0,0,0,0.4)",
+          display:"flex",alignItems:"center",justifyContent:"center",
+          transform:panelType!==null?"rotate(45deg)":"rotate(0deg)",
+          transition:"transform 0.2s",
+        }}>＋</button>
+      </div>
+
+      {/* Panels */}
+      <AddPanel open={panelType==="income"} onClose={()=>setPanelType(null)}
+        title={panelMeta.income.title} color={panelMeta.income.color}>
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          <div>
+            <div style={{fontSize:12,color:"#64748b",marginBottom:6}}>Tên nguồn thu</div>
+            <input value={newIncome} onChange={e=>setNewIncome(e.target.value)}
+              placeholder="Dạy kèm, lương..." style={S.input} autoFocus
+              onKeyDown={e=>e.key==="Enter"&&newIncome.trim()&&(upd("income",[...data.finance.income,{id:Date.now(),label:newIncome.trim(),amount:0}]),setNewIncome(""),setPanelType(null))}/>
+          </div>
+          <button onClick={()=>{if(!newIncome.trim())return;upd("income",[...data.finance.income,{id:Date.now(),label:newIncome.trim(),amount:0}]);setNewIncome("");setPanelType(null);}}
+            style={{...S.btn,background:"#10b981",width:"100%",justifyContent:"center"}}>+ Thêm</button>
+        </div>
+      </AddPanel>
+
+      <AddPanel open={panelType==="debt"} onClose={()=>setPanelType(null)}
+        title={panelMeta.debt.title} color={panelMeta.debt.color}>
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          <div>
+            <div style={{fontSize:12,color:"#64748b",marginBottom:6}}>Tên khoản nợ</div>
+            <input value={newDebt} onChange={e=>setNewDebt(e.target.value)}
+              placeholder="Seasy, HD..." style={S.input} autoFocus
+              onKeyDown={e=>e.key==="Enter"&&newDebt.trim()&&(upd("debt",[...data.finance.debt,{id:Date.now(),label:newDebt.trim(),amount:0,paid:false}]),setNewDebt(""),setPanelType(null))}/>
+          </div>
+          <button onClick={()=>{if(!newDebt.trim())return;upd("debt",[...data.finance.debt,{id:Date.now(),label:newDebt.trim(),amount:0,paid:false}]);setNewDebt("");setPanelType(null);}}
+            style={{...S.btn,background:"#f43f5e",width:"100%",justifyContent:"center"}}>+ Thêm</button>
+        </div>
+      </AddPanel>
+
+      <AddPanel open={panelType==="expense"} onClose={()=>setPanelType(null)}
+        title={panelMeta.expense.title} color={panelMeta.expense.color}>
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          <div>
+            <div style={{fontSize:12,color:"#64748b",marginBottom:6}}>Tên chi phí</div>
+            <input value={newExp} onChange={e=>setNewExp(e.target.value)}
+              placeholder="Xăng xe, điện..." style={S.input} autoFocus/>
+          </div>
+          <div>
+            <div style={{fontSize:12,color:"#64748b",marginBottom:6}}>Số tiền tối thiểu (đ)</div>
+            <input type="number" value={newExpMin} onChange={e=>setNewExpMin(e.target.value)}
+              placeholder="0" style={S.input}/>
+          </div>
+          <button onClick={()=>{if(!newExp.trim())return;upd("expenses",[...data.finance.expenses,{id:Date.now(),label:newExp.trim(),amount:0,min:+newExpMin||0}]);setNewExp("");setNewExpMin("");setPanelType(null);}}
+            style={{...S.btn,background:"#f97316",width:"100%",justifyContent:"center"}}>+ Thêm</button>
+        </div>
+      </AddPanel>
+
+      <AddPanel open={panelType==="outing"} onClose={()=>setPanelType(null)}
+        title={panelMeta.outing.title} color={panelMeta.outing.color}>
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          <div>
+            <div style={{fontSize:12,color:"#64748b",marginBottom:6}}>Ngày</div>
+            <input type="date" value={outDate} onChange={e=>setOutDate(e.target.value)} style={S.input}/>
+          </div>
+          <div>
+            <div style={{fontSize:12,color:"#64748b",marginBottom:6}}>Ghi chú</div>
+            <input value={outNote} onChange={e=>setOutNote(e.target.value)}
+              placeholder="Đi đâu, làm gì..." style={S.input} autoFocus/>
+          </div>
+          <div>
+            <div style={{fontSize:12,color:"#64748b",marginBottom:6}}>Số tiền (đ)</div>
+            <input type="number" value={outAmt} onChange={e=>setOutAmt(e.target.value)}
+              placeholder="0" style={S.input}
+              onKeyDown={e=>e.key==="Enter"&&outAmt&&(upd("outings",[...data.finance.outings,{id:Date.now(),date:outDate,note:outNote.trim(),amount:+outAmt}]),setOutNote(""),setOutAmt(""),setPanelType(null))}/>
+          </div>
+          <button onClick={()=>{if(!outAmt)return;upd("outings",[...data.finance.outings,{id:Date.now(),date:outDate,note:outNote.trim(),amount:+outAmt}]);setOutNote("");setOutAmt("");setPanelType(null);}}
+            style={{...S.btn,background:"#a78bfa",color:"#fff",width:"100%",justifyContent:"center"}}>+ Ghi</button>
+        </div>
+      </AddPanel>
     <div>
       {/* Month picker */}
       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
@@ -827,9 +1046,6 @@ function TabFinance({data,setData}:any) {
             onChange={(v:any)=>upd("income",data.finance.income.map((x:any)=>x.id===item.id?{...x,amount:v}:x))}
             onDelete={()=>upd("income",data.finance.income.filter((x:any)=>x.id!==item.id))}/>
         ))}
-        <AddRow value={newIncome} onChange={setNewIncome} placeholder="Tên nguồn thu..."
-          onAdd={()=>{if(!newIncome.trim())return;upd("income",[...data.finance.income,{id:Date.now(),label:newIncome.trim(),amount:0}]);setNewIncome("");}}
-          color="#10b981"/>
       </FinSection>
 
       {/* NỢ */}
@@ -841,9 +1057,6 @@ function TabFinance({data,setData}:any) {
             onDelete={()=>upd("debt",data.finance.debt.filter((x:any)=>x.id!==item.id))}
             onTogglePaid={()=>upd("debt",data.finance.debt.map((x:any)=>x.id===item.id?{...x,paid:!x.paid}:x))}/>
         ))}
-        <AddRow value={newDebt} onChange={setNewDebt} placeholder="Tên khoản nợ..."
-          onAdd={()=>{if(!newDebt.trim())return;upd("debt",[...data.finance.debt,{id:Date.now(),label:newDebt.trim(),amount:0,paid:false}]);setNewDebt("");}}
-          color="#f43f5e"/>
       </FinSection>
 
       {/* CHI PHÍ */}
@@ -859,31 +1072,10 @@ function TabFinance({data,setData}:any) {
               borderColor={below?"#f43f5e":undefined}/>
           );
         })}
-        <div style={{display:"flex",gap:8,marginTop:8}}>
-          <input value={newExp} onChange={e=>setNewExp(e.target.value)} placeholder="Tên chi phí..."
-            style={{...S.input,flex:1,fontSize:13,padding:"8px 10px"}}/>
-          <input type="number" value={newExpMin} onChange={e=>setNewExpMin(e.target.value)} placeholder="Min (đ)"
-            style={{...S.input,width:80,fontSize:13,padding:"8px 10px"}}/>
-          <button onClick={()=>{if(!newExp.trim())return;upd("expenses",[...data.finance.expenses,{id:Date.now(),label:newExp.trim(),amount:0,min:+newExpMin||0}]);setNewExp("");setNewExpMin("");}}
-            style={{...S.btn,background:"#f97316",padding:"8px 12px",fontSize:13}}>+</button>
-        </div>
       </FinSection>
 
       {/* ĐI CHƠI */}
       <FinSection title="🎉 Đi chơi" total={fmt(totalOut)} color="#a78bfa">
-        <div style={{display:"flex",gap:8,marginBottom:10,flexWrap:"wrap"}}>
-          <input type="date" value={outDate} onChange={e=>setOutDate(e.target.value)}
-            style={{...S.input,flex:"1 1 120px",fontSize:13,padding:"8px 10px"}}/>
-          <input value={outNote} onChange={e=>setOutNote(e.target.value)} placeholder="Ghi chú..."
-            style={{...S.input,flex:"2 1 160px",fontSize:13,padding:"8px 10px"}}/>
-          <div style={{display:"flex",gap:8,width:"100%"}}>
-            <input type="number" value={outAmt} onChange={e=>setOutAmt(e.target.value)} placeholder="Số tiền..."
-              onKeyDown={e=>e.key==="Enter"&&outAmt&&(upd("outings",[...data.finance.outings,{id:Date.now(),date:outDate,note:outNote.trim(),amount:+outAmt}]),setOutNote(""),setOutAmt(""))}
-              style={{...S.input,flex:1,fontSize:13,padding:"8px 10px"}}/>
-            <button onClick={()=>{if(!outAmt)return;upd("outings",[...data.finance.outings,{id:Date.now(),date:outDate,note:outNote.trim(),amount:+outAmt}]);setOutNote("");setOutAmt("");}}
-              style={{...S.btn,background:"#a78bfa",color:"#fff",padding:"8px 14px",fontSize:13}}>+</button>
-          </div>
-        </div>
         {!data.finance.outings.length&&<div style={{fontSize:13,color:"#475569",textAlign:"center",padding:"10px 0"}}>Chưa có lần đi chơi 🎈</div>}
         {[...data.finance.outings].sort((a:any,b:any)=>b.date.localeCompare(a.date)).map((o:any)=>(
           <div key={o.id} style={{display:"flex",alignItems:"center",gap:8,padding:"9px 0",borderBottom:"1px solid #1a2735"}}>
@@ -928,17 +1120,6 @@ function FinRow({label,value,onChange,onDelete,paid,onTogglePaid,hint,hintColor,
         <span style={{fontSize:12,color:"#475569"}}>đ</span>
         <button onClick={onDelete} style={S.delBtn}>✕</button>
       </div>
-    </div>
-  );
-}
-
-function AddRow({value,onChange,placeholder,onAdd,color}:any){
-  return (
-    <div style={{display:"flex",gap:8,marginTop:8}}>
-      <input value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder}
-        onKeyDown={e=>e.key==="Enter"&&onAdd()}
-        style={{...S.input,flex:1,fontSize:13,padding:"8px 10px"}}/>
-      <button onClick={onAdd} style={{...S.btn,background:color||"#38bdf8",padding:"8px 12px",fontSize:13}}>+ Thêm</button>
     </div>
   );
 }
