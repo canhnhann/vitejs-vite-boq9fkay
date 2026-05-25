@@ -3,6 +3,26 @@ import { supabase } from "./supabase";
 
 const USER_ID = "my-tracker";
 
+// ─── Dùng giờ LOCAL (UTC+7) thay vì UTC của toISOString() ─────
+// toISOString() trả về UTC → ở VN (UTC+7) từ 0h-6h59 sẽ bị lệch ngày
+function localDateStr(date: Date = new Date()): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+function localMonthStr(date: Date = new Date()): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  return `${y}-${m}`;
+}
+// Tính mili-giây đến 0h00 ngày mai theo giờ local
+function msUntilLocalMidnight(): number {
+  const now = new Date();
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
+  return midnight.getTime() - now.getTime();
+}
+
 // ─── Tab config ───────────────────────────────────────────────
 const TABS = [
   { id: 0, icon: "📚", label: "Môn học" },
@@ -34,9 +54,9 @@ const initialData = {
     ]},
   ],
   todos: [
-    {id:1,text:"Ôn tập chương 3 Toán",done:false,priority:"cao",date:new Date().toISOString().slice(0,10)},
-    {id:2,text:"Viết bài luận Văn",done:false,priority:"trung bình",date:new Date().toISOString().slice(0,10)},
-    {id:3,text:"Học từ vựng Unit 5",done:true,priority:"thấp",date:new Date().toISOString().slice(0,10)},
+    {id:1,text:"Ôn tập chương 3 Toán",done:false,priority:"cao",date:localDateStr()},
+    {id:2,text:"Viết bài luận Văn",done:false,priority:"trung bình",date:localDateStr()},
+    {id:3,text:"Học từ vựng Unit 5",done:true,priority:"thấp",date:localDateStr()},
   ],
   todoHistory: [] as {date:string;items:{id:number;text:string;done:boolean;priority:string}[]}[],
   goals: [
@@ -50,7 +70,7 @@ const initialData = {
     {id:3,subject:"Anh",lesson:"Unit 6: Technology",status:"hoàn thành"},
   ],
   finance: {
-    month: new Date().toISOString().slice(0,7),
+    month: localMonthStr(),
     income: [
       {id:1,label:"Dạy kèm Toán",amount:0},
       {id:2,label:"Dạy kèm Lý",amount:0},
@@ -127,10 +147,10 @@ export default function App() {
 
   // ─ Daily reset
   const runDailyReset = useCallback((cur: typeof initialData) => {
-    const today = new Date().toISOString().slice(0,10);
+    const today = localDateStr();
     const oldTodos = cur.todos.filter(t => !t.date || t.date < today);
     if (!oldTodos.length) return null;
-    const yest = new Date(Date.now()-86400000).toISOString().slice(0,10);
+    const yest = localDateStr(new Date(Date.now()-86400000));
     const byDate: Record<string,typeof oldTodos> = {};
     oldTodos.forEach(t => { const k = t.date && t.date<today ? t.date : yest; (byDate[k]??=[]).push(t); });
     const hist = [...(cur.todoHistory||[])];
@@ -148,15 +168,14 @@ export default function App() {
     if (patch) setData(d=>({...d,...patch}));
     let tid: ReturnType<typeof setTimeout>;
     const sched = () => {
-      const now=new Date(), m=new Date(now); m.setHours(24,0,0,0);
-      tid=setTimeout(()=>{ setData(d=>{const p=runDailyReset(d);return p?{...d,...p}:d;}); sched(); }, m.getTime()-now.getTime());
+      tid=setTimeout(()=>{ setData(d=>{const p=runDailyReset(d);return p?{...d,...p}:d;}); sched(); }, msUntilLocalMidnight());
     };
     sched();
     return ()=>clearTimeout(tid);
   }, [loading]); // eslint-disable-line
 
   // ─ Stats
-  const todayStr = new Date().toISOString().slice(0,10);
+  const todayStr = localDateStr();
   const totalStudyMin = data.studyLog.reduce((a,b)=>a+b.minutes,0);
   const todayTodos = data.todos.filter(t=>!t.date||t.date===todayStr);
   const doneTodos = todayTodos.filter(t=>t.done).length;
@@ -597,7 +616,7 @@ function TabGoals({data,setData}:any) {
 // TAB 3 — THỜI GIAN HỌC
 // ══════════════════════════════════════════════════════════════
 function TabStudy({data,setData,totalMin}:any) {
-  const [date,setDate]=useState(new Date().toISOString().slice(0,10));
+  const [date,setDate]=useState(localDateStr());
   const [minutes,setMinutes]=useState("");
   const [note,setNote]=useState("");
   const add=()=>{
@@ -732,7 +751,7 @@ function TabFinance({data,setData}:any) {
   const [newDebt,setNewDebt]=useState("");
   const [newExp,setNewExp]=useState("");
   const [newExpMin,setNewExpMin]=useState("");
-  const [outDate,setOutDate]=useState(new Date().toISOString().slice(0,10));
+  const [outDate,setOutDate]=useState(localDateStr());
   const [outNote,setOutNote]=useState("");
   const [outAmt,setOutAmt]=useState("");
 
