@@ -1138,6 +1138,7 @@ function TabFinance({data,setData}:any) {
         ))}
       </FinSection>
     </div>
+    </div>
   );
 }
 
