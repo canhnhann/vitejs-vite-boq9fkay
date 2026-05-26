@@ -267,7 +267,7 @@ export default function App() {
             }}>
               {saveStatus==="saving" && (
                 <svg width="12" height="12" viewBox="0 0 12 12" style={{animation:"spin 1s linear infinite"}}>
-                  <circle cx="6" cy="6" r="5" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="8 8"/>
+                  <circle cx="6" cy="6" r="5" fill="none" stroke="currentColor" strokeWidth={2} strokeDasharray="8 8"/>
                 </svg>
               )}
               {saveStatus==="saved" && <span>✓</span>}
