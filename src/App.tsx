@@ -127,6 +127,7 @@ export default function App() {
   const [tab, setTab] = useState(0);
   const [data, setData] = useState(initialData);
   const [loading, setLoading] = useState(true);
+  const [saveStatus, setSaveStatus] = useState<"saved"|"saving"|"error">("saved");
   const saveTimer = useRef<ReturnType<typeof setTimeout>|null>(null);
 
   // Load from Supabase — delay tối thiểu 1s để màn hình loading hiện đủ lâu
@@ -144,11 +145,15 @@ export default function App() {
   // Debounce save — 1500ms để giảm số lần ghi khi gõ phím liên tục
   useEffect(() => {
     if (loading) return;
+    setSaveStatus("saving");
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       supabase.from("tracker_data")
         .upsert({user_id:USER_ID, data, updated_at:new Date()})
-        .then(({error}) => { if (error) console.error("Lỗi lưu:", error.message); });
+        .then(({error}) => {
+          if (error) { console.error("Lỗi lưu:", error.message); setSaveStatus("error"); }
+          else setSaveStatus("saved");
+        });
     }, 1500);
   }, [data, loading]);
 
@@ -174,9 +179,13 @@ export default function App() {
     const patch = runDailyReset(cur);
     if (!patch) return cur;
     const next = {...cur, ...patch};
+    setSaveStatus("saving");
     supabase.from("tracker_data")
       .upsert({user_id: USER_ID, data: next, updated_at: new Date()})
-      .then(({error}) => { if (error) console.error("Lỗi lưu reset:", error.message); });
+      .then(({error}) => {
+        if (error) { console.error("Lỗi lưu reset:", error.message); setSaveStatus("error"); }
+        else setSaveStatus("saved");
+      });
     return next;
   }, [runDailyReset]);
 
@@ -251,6 +260,20 @@ export default function App() {
             <h1 style={{margin:0,fontSize:20,fontWeight:800,color:"#f8fafc",letterSpacing:"-0.5px"}}>
               📖 KAQ Tracker
             </h1>
+            {/* Save status indicator */}
+            <div style={{display:"flex",alignItems:"center",gap:5,fontSize:11,
+              color: saveStatus==="saved"?"#10b981": saveStatus==="saving"?"#facc15":"#f43f5e",
+              transition:"color 0.3s",
+            }}>
+              {saveStatus==="saving" && (
+                <svg width="12" height="12" viewBox="0 0 12 12" style={{animation:"spin 1s linear infinite"}}>
+                  <circle cx="6" cy="6" r="5" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="8 8"/>
+                </svg>
+              )}
+              {saveStatus==="saved" && <span>✓</span>}
+              {saveStatus==="error" && <span>✕</span>}
+              <span>{saveStatus==="saving"?"Đang lưu…": saveStatus==="saved"?"Đã lưu":"Lỗi lưu"}</span>
+            </div>
           </div>
           <p style={{margin:"2px 0 10px",fontSize:12,color:"#475569"}}>Theo dõi tiến trình cuộc đời</p>
 
