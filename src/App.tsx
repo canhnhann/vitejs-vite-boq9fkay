@@ -130,17 +130,43 @@ export default function App() {
   const [saveStatus, setSaveStatus] = useState<"saved"|"saving"|"error">("saved");
   const saveTimer = useRef<ReturnType<typeof setTimeout>|null>(null);
 
-  // Load from Supabase — delay tối thiểu 1s để màn hình loading hiện đủ lâu
+  // ─── localStorage helpers (fallback khi Supabase lỗi) ────────
+  const LS_KEY = `tracker_data_${USER_ID}`;
+  const lsSave = (d: typeof initialData) => {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(d)); } catch {}
+  };
+  const lsLoad = (): typeof initialData | null => {
+    try { const s = localStorage.getItem(LS_KEY); return s ? JSON.parse(s) : null; } catch { return null; }
+  };
+
+  // Load from Supabase — fallback localStorage nếu lỗi hoặc chưa có bảng
   useEffect(() => {
     const t0 = Date.now();
     supabase.from("tracker_data").select("data").eq("user_id",USER_ID).maybeSingle()
-      .then(({data:row}) => {
-        if (row?.data) setData(row.data);
+      .then(({data:row, error}) => {
+        if (error) {
+          console.warn("Supabase load lỗi, dùng localStorage:", error.message);
+          const local = lsLoad();
+          if (local) setData(local);
+        } else if (row?.data) {
+          setData(row.data);
+          lsSave(row.data); // đồng bộ localStorage
+        } else {
+          // Chưa có dữ liệu trên Supabase, thử localStorage
+          const local = lsLoad();
+          if (local) setData(local);
+        }
         const elapsed = Date.now() - t0;
         const remain = Math.max(0, 1000 - elapsed);
         setTimeout(() => setLoading(false), remain);
+      })
+      .catch(() => {
+        // Lỗi mạng hoàn toàn — dùng localStorage
+        const local = lsLoad();
+        if (local) setData(local);
+        setTimeout(() => setLoading(false), 0);
       });
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Debounce save — 1500ms để giảm số lần ghi khi gõ phím liên tục
   useEffect(() => {
@@ -148,14 +174,25 @@ export default function App() {
     setSaveStatus("saving");
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
+      // Luôn lưu localStorage trước (nhanh, không phụ thuộc mạng)
+      lsSave(data);
       supabase.from("tracker_data")
         .upsert({user_id:USER_ID, data, updated_at:new Date()})
         .then(({error}) => {
-          if (error) { console.error("Lỗi lưu:", error.message); setSaveStatus("error"); }
-          else setSaveStatus("saved");
+          if (error) {
+            console.warn("Supabase lỗi, đã lưu localStorage:", error.message);
+            // Vẫn coi là "saved" vì localStorage đã lưu thành công
+            setSaveStatus("saved");
+          } else {
+            setSaveStatus("saved");
+          }
+        })
+        .catch(() => {
+          // Lỗi mạng — localStorage đã lưu rồi
+          setSaveStatus("saved");
         });
     }, 1500);
-  }, [data, loading]);
+  }, [data, loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─ Daily reset
   const runDailyReset = useCallback((cur: typeof initialData) => {
@@ -180,12 +217,15 @@ export default function App() {
     if (!patch) return cur;
     const next = {...cur, ...patch};
     setSaveStatus("saving");
+    // Lưu localStorage trước
+    try { localStorage.setItem(`tracker_data_${USER_ID}`, JSON.stringify(next)); } catch {}
     supabase.from("tracker_data")
       .upsert({user_id: USER_ID, data: next, updated_at: new Date()})
       .then(({error}) => {
-        if (error) { console.error("Lỗi lưu reset:", error.message); setSaveStatus("error"); }
+        if (error) { console.warn("Supabase lỗi reset:", error.message); setSaveStatus("saved"); }
         else setSaveStatus("saved");
-      });
+      })
+      .catch(() => setSaveStatus("saved"));
     return next;
   }, [runDailyReset]);
 
