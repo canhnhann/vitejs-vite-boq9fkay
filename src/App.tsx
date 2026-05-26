@@ -169,17 +169,31 @@ export default function App() {
     return { todos:cur.todos.filter(t=>t.date&&t.date>=today), todoHistory:hist.sort((a,b)=>b.date.localeCompare(a.date)).slice(0,14) };
   }, []);
 
+  // Lưu thẳng lên Supabase sau reset — tránh race condition với save effect
+  const applyResetAndSave = useCallback((cur: typeof initialData) => {
+    const patch = runDailyReset(cur);
+    if (!patch) return cur;
+    const next = {...cur, ...patch};
+    supabase.from("tracker_data")
+      .upsert({user_id: USER_ID, data: next, updated_at: new Date()})
+      .then(({error}) => { if (error) console.error("Lỗi lưu reset:", error.message); });
+    return next;
+  }, [runDailyReset]);
+
   useEffect(() => {
     if (loading) return;
-    const patch = runDailyReset(data);
-    if (patch) setData(d=>({...d,...patch}));
+    // Chạy reset ngay khi load xong, dùng functional update để có data mới nhất
+    setData(d => applyResetAndSave(d));
     let tid: ReturnType<typeof setTimeout>;
     const sched = () => {
-      tid=setTimeout(()=>{ setData(d=>{const p=runDailyReset(d);return p?{...d,...p}:d;}); sched(); }, msUntilLocalMidnight());
+      tid = setTimeout(() => {
+        setData(d => applyResetAndSave(d));
+        sched();
+      }, msUntilLocalMidnight());
     };
     sched();
-    return ()=>clearTimeout(tid);
-  }, [loading, runDailyReset]);
+    return () => clearTimeout(tid);
+  }, [loading, applyResetAndSave]);
 
   // ─ Stats
   const todayStr = localDateStr();
